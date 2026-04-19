@@ -21,7 +21,13 @@ jobs:
       name: production
       url: https://www.smrdime.cz
     steps:
+      # Pin to the commit CI validated. Without this, workflow_run would
+      # default to the tip of main, so a commit landing between CI success
+      # and deploy start would ship untested code. workflow_dispatch has no
+      # workflow_run payload; the fallback uses the dispatched ref's SHA.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
