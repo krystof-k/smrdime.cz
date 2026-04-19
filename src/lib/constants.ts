@@ -11,9 +11,10 @@ export const AC_FLEET_15T = 127;
 export const AC_FLEET_52T = 20;
 export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
 
-// Edge cache on /api/tram dedupes globally at 30 s; client polling more
-// frequently still sees fresh-ish data cheaply via cache hits.
-export const REFRESH_INTERVAL_MS = 10_000;
+// TramStatusHub alarm cadence while at least one client is connected. Matches
+// the old edge-cache TTL; the DO polls Golemio at this rate and broadcasts only
+// when the content actually changes.
+export const TRAM_POLL_INTERVAL_MS = 30_000;
 
 // Weather changes slowly; the proxy edge-caches for 5 min, so polling more
 // frequently from the client just spends bandwidth without seeing fresh data.

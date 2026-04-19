@@ -27,14 +27,16 @@ const sampleTramStatus = {
 
 const sampleWeather = { temperature: 28 };
 
-async function mockTram(page: import("@playwright/test").Page, payload: unknown, status = 200) {
-  await page.route("**/api/tram", (route) =>
-    route.fulfill({
-      status,
-      contentType: "application/json",
-      body: JSON.stringify(payload),
-    }),
-  );
+async function mockTramStream(page: import("@playwright/test").Page, payload: unknown) {
+  await page.routeWebSocket("**/api/tram/stream", (ws) => {
+    ws.send(JSON.stringify(payload));
+  });
+}
+
+async function refuseTramStream(page: import("@playwright/test").Page) {
+  await page.routeWebSocket("**/api/tram/stream", (ws) => {
+    ws.close({ code: 1011, reason: "upstream failure" });
+  });
 }
 
 async function mockWeather(page: import("@playwright/test").Page, payload: unknown, status = 200) {
@@ -49,7 +51,7 @@ async function mockWeather(page: import("@playwright/test").Page, payload: unkno
 
 test.describe("happy path", () => {
   test.beforeEach(async ({ page }) => {
-    await mockTram(page, sampleTramStatus);
+    await mockTramStream(page, sampleTramStatus);
     await mockWeather(page, sampleWeather);
   });
 
@@ -109,7 +111,7 @@ test.describe("happy path", () => {
 
 test.describe("error state", () => {
   test.beforeEach(async ({ page }) => {
-    await mockTram(page, { error: "Failed to fetch tram status" }, 500);
+    await refuseTramStream(page);
     await mockWeather(page, sampleWeather);
   });
 
@@ -124,7 +126,7 @@ test.describe("error state", () => {
 
 test.describe("weather missing", () => {
   test.beforeEach(async ({ page }) => {
-    await mockTram(page, sampleTramStatus);
+    await mockTramStream(page, sampleTramStatus);
     await mockWeather(page, { error: "boom" }, 500);
   });
 

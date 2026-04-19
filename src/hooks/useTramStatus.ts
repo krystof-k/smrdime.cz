@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REFRESH_INTERVAL_MS } from "@/lib/constants";
 import type { TramAnalysisResult } from "@/lib/tram-analysis";
 import { usePageVisible } from "./usePageVisible";
 
@@ -12,41 +11,108 @@ export type TramStatusState = {
   refresh: () => void;
 };
 
-export function useTramStatus({ paused = false }: { paused?: boolean } = {}): TramStatusState {
-  const [data, setData] = useState<TramAnalysisResult | null>(null);
+type UseTramStatusOptions = {
+  paused?: boolean;
+  initialSnapshot?: TramAnalysisResult | null;
+};
+
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
+
+function streamUrl(): string {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/api/tram/stream`;
+}
+
+/**
+ * Subscribes to the TramStatusHub Durable Object over a single WebSocket.
+ * The socket is closed when the tab is hidden or the user pauses updates,
+ * which is what lets the hub stop polling upstream while nobody is watching.
+ */
+export function useTramStatus({
+  paused = false,
+  initialSnapshot = null,
+}: UseTramStatusOptions = {}): TramStatusState {
+  const [data, setData] = useState<TramAnalysisResult | null>(initialSnapshot);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const inFlightController = useRef<AbortController | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(
+    initialSnapshot ? new Date(initialSnapshot.lastUpdated) : null,
+  );
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
   const visible = usePageVisible();
 
-  const refresh = useCallback(async () => {
-    inFlightController.current?.abort();
-    const controller = new AbortController();
-    inFlightController.current = controller;
-
+  const applyPayload = useCallback((raw: string) => {
     try {
-      const response = await fetch("/api/tram", { signal: controller.signal });
-      if (!response.ok) throw new Error("Failed to fetch tram status");
-      const payload = (await response.json()) as TramAnalysisResult;
-      if (controller.signal.aborted) return;
+      const payload = JSON.parse(raw) as TramAnalysisResult;
       setData(payload);
       setError(null);
       setLastUpdated(new Date(payload.lastUpdated));
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch {
+      setError("Neplatná data z WebSocketu");
     }
   }, []);
 
   useEffect(() => {
     if (paused || !visible) return;
-    refresh();
-    const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
-    return () => {
-      clearInterval(interval);
-      inFlightController.current?.abort();
+
+    let cancelled = false;
+
+    const connect = () => {
+      if (cancelled) return;
+      const socket = new WebSocket(streamUrl());
+      socketRef.current = socket;
+      let opened = false;
+
+      socket.addEventListener("open", () => {
+        opened = true;
+        reconnectAttemptRef.current = 0;
+      });
+      socket.addEventListener("message", (event) => {
+        if (typeof event.data === "string") applyPayload(event.data);
+      });
+      socket.addEventListener("close", () => {
+        if (cancelled) return;
+        if (!opened) setError((prev) => prev ?? "WebSocket spojení selhalo");
+        const attempt = reconnectAttemptRef.current;
+        reconnectAttemptRef.current = attempt + 1;
+        const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      });
+      socket.addEventListener("error", () => {
+        setError((prev) => prev ?? "WebSocket spojení selhalo");
+      });
     };
-  }, [refresh, paused, visible]);
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      const socket = socketRef.current;
+      socketRef.current = null;
+      if (socket && socket.readyState <= WebSocket.OPEN) {
+        socket.close(1000, "unmount");
+      }
+    };
+  }, [applyPayload, paused, visible]);
+
+  const refresh = useCallback(() => {
+    const socket = socketRef.current;
+    if (socket?.readyState === WebSocket.OPEN) return;
+    // Reset backoff so the next reconnect attempt fires quickly after the
+    // user taps "Retry".
+    reconnectAttemptRef.current = 0;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    socket?.close();
+  }, []);
 
   return { data, error, lastUpdated, refresh };
 }

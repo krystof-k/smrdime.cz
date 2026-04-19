@@ -4,11 +4,16 @@ import { useState } from "react";
 import { usePrefersDark } from "@/hooks/usePrefersDark";
 import { useTramStatus } from "@/hooks/useTramStatus";
 import { useWeather } from "@/hooks/useWeather";
+import type { TramAnalysisResult } from "@/lib/tram-analysis";
 import { TramStatusView } from "./TramStatusView";
 
-export default function TramStatus() {
+type TramStatusProps = {
+  initialSnapshot: TramAnalysisResult | null;
+};
+
+export default function TramStatus({ initialSnapshot }: TramStatusProps) {
   const [paused, setPaused] = useState(false);
-  const { data, error, lastUpdated, refresh } = useTramStatus({ paused });
+  const { data, error, lastUpdated, refresh } = useTramStatus({ paused, initialSnapshot });
   const temperature = useWeather({ paused });
   const isDark = usePrefersDark();
 

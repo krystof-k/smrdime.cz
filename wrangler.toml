@@ -1,8 +1,16 @@
 name = "smrdime-cz"
-main = ".open-next/worker.js"
+main = "worker-entry.js"
 compatibility_date = "2026-04-15"
 compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
+
+[[durable_objects.bindings]]
+name = "TRAM_HUB"
+class_name = "TramStatusHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TramStatusHub"]
 
 [observability]
 enabled = true
