@@ -106,6 +106,31 @@ describe("tram routes loader", () => {
     assert.equal(fetchCalls.length, 1);
   });
 
+  it("serves stale cached routes when a refresh fails", async () => {
+    queueJson([tramRoute("1")]);
+    queueStatus(500, "Server Error");
+
+    // ttl 0 forces the second call to re-enter the fetch path; stale retry
+    // window of 1 ms lets the third call re-enter it again so we can verify
+    // both the fallback payload and that retries are actually happening.
+    const loader = createTramRoutesLoader(0, 1);
+
+    const first = await loader();
+    assert.deepEqual(
+      first.map((r) => r.route_id),
+      ["1"],
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const second = await loader();
+    assert.deepEqual(
+      second.map((r) => r.route_id),
+      ["1"],
+      "stale payload should be reused when refresh fails",
+    );
+    assert.equal(fetchCalls.length, 2);
+  });
+
   it("caches routes across calls within one loader instance", async () => {
     queueJson([tramRoute("1")]);
 
