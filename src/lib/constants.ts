@@ -28,3 +28,16 @@ export const DPP_AC_FAQ_URL =
 
 export const DPP_52T_URL =
   "https://www.dpp.cz/spolecnost/o-spolecnosti/vozovy-park/tramvaje/skoda-52t";
+
+export const DPP_BUS_STATS_URL =
+  "https://www.dpp.cz/spolecnost/o-spolecnosti/profil-spolecnosti/statistiky-dpp";
+
+/**
+ * AC-equipped buses in the DPP fleet. Source: DPP FAQ (DPP_AC_FAQ_URL) —
+ * "K 31. květnu 2025 má DPP v autobusové flotile 66,18 % plně klimatizovaných
+ * autobusů" — applied to the 1 277-vehicle fleet reported on DPP_BUS_STATS_URL:
+ * 1 277 × 0.6618 ≈ 845. Last verified: 2026-04-19.
+ */
+export const AC_FLEET_BUS_TOTAL = 845;
+export const BUS_FLEET_TOTAL = 1277;
+export const BUS_AC_PERCENTAGE = 66.18;

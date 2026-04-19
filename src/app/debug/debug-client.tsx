@@ -1,17 +1,22 @@
 "use client";
 
 import { cloneElement, useEffect, useId, useState } from "react";
-import { TramStatusView } from "@/components/TramStatusView";
+import { DashboardView } from "@/components/DashboardView";
+import type { LineInfo, VehicleAnalysisResult } from "@/lib/analysis";
 import { AC_LEVELS, COOL_CUTOFF_C, TEMPERATURE_TIERS } from "@/lib/display";
-import type { TramAnalysisResult, TramLineInfo } from "@/lib/tram-analysis";
 
 type DebugState = {
   temperature: number | null;
   totalTrams: number;
   tramsWithAC: number;
-  lineCount: number;
-  loading: boolean;
-  error: string;
+  tramLineCount: number;
+  tramLoading: boolean;
+  tramError: string;
+  totalBuses: number;
+  busesWithAC: number;
+  busLineCount: number;
+  busLoading: boolean;
+  busError: string;
   isDark: boolean;
 };
 
@@ -24,9 +29,14 @@ const DEFAULT_STATE: DebugState = {
   temperature: 28,
   totalTrams: 120,
   tramsWithAC: 40,
-  lineCount: 9,
-  loading: false,
-  error: "",
+  tramLineCount: 9,
+  tramLoading: false,
+  tramError: "",
+  totalBuses: 280,
+  busesWithAC: 180,
+  busLineCount: 12,
+  busLoading: false,
+  busError: "",
   isDark: false,
 };
 
@@ -38,6 +48,8 @@ const PRESETS: Preset[] = [
       temperature: 40,
       totalTrams: 150,
       tramsWithAC: 15,
+      totalBuses: 300,
+      busesWithAC: 120,
     },
   },
   {
@@ -47,6 +59,8 @@ const PRESETS: Preset[] = [
       temperature: 32,
       totalTrams: 140,
       tramsWithAC: 40,
+      totalBuses: 290,
+      busesWithAC: 160,
     },
   },
   {
@@ -56,6 +70,8 @@ const PRESETS: Preset[] = [
       temperature: 25,
       totalTrams: 120,
       tramsWithAC: 60,
+      totalBuses: 270,
+      busesWithAC: 200,
     },
   },
   {
@@ -65,6 +81,8 @@ const PRESETS: Preset[] = [
       temperature: 18,
       totalTrams: 100,
       tramsWithAC: 50,
+      totalBuses: 240,
+      busesWithAC: 170,
     },
   },
   {
@@ -74,6 +92,8 @@ const PRESETS: Preset[] = [
       temperature: 8,
       totalTrams: 90,
       tramsWithAC: 45,
+      totalBuses: 220,
+      busesWithAC: 150,
     },
   },
   {
@@ -83,6 +103,8 @@ const PRESETS: Preset[] = [
       temperature: -5,
       totalTrams: 80,
       tramsWithAC: 40,
+      totalBuses: 200,
+      busesWithAC: 130,
     },
   },
   {
@@ -92,6 +114,8 @@ const PRESETS: Preset[] = [
       temperature: 30,
       totalTrams: 120,
       tramsWithAC: 0,
+      totalBuses: 280,
+      busesWithAC: 0,
     },
   },
   {
@@ -101,19 +125,45 @@ const PRESETS: Preset[] = [
       temperature: 30,
       totalTrams: 100,
       tramsWithAC: 100,
+      totalBuses: 260,
+      busesWithAC: 260,
     },
   },
   {
     label: "Loading",
-    state: { ...DEFAULT_STATE, loading: true },
+    state: { ...DEFAULT_STATE, tramLoading: true, busLoading: true },
   },
   {
-    label: "Error",
-    state: { ...DEFAULT_STATE, error: "Failed to fetch tram status" },
+    label: "Error (oboje)",
+    state: {
+      ...DEFAULT_STATE,
+      tramError: "Failed to fetch tram status",
+      busError: "Failed to fetch bus status",
+    },
   },
   {
-    label: "Prázdno (0 tramvají)",
-    state: { ...DEFAULT_STATE, totalTrams: 0, tramsWithAC: 0 },
+    label: "Jen autobusy padly",
+    state: {
+      ...DEFAULT_STATE,
+      busError: "Failed to fetch bus status",
+    },
+  },
+  {
+    label: "Jen tramvaje padly",
+    state: {
+      ...DEFAULT_STATE,
+      tramError: "Failed to fetch tram status",
+    },
+  },
+  {
+    label: "Prázdno (0 vozů)",
+    state: {
+      ...DEFAULT_STATE,
+      totalTrams: 0,
+      tramsWithAC: 0,
+      totalBuses: 0,
+      busesWithAC: 0,
+    },
   },
   {
     label: "Bez počasí",
@@ -121,7 +171,7 @@ const PRESETS: Preset[] = [
   },
 ];
 
-const LINE_NUMBERS = [
+const TRAM_LINE_NUMBERS = [
   "1",
   "2",
   "3",
@@ -145,56 +195,111 @@ const LINE_NUMBERS = [
   "92",
 ];
 
-function generateLineDetails(
-  totalTrams: number,
-  tramsWithAC: number,
-  lineCount: number,
-): TramLineInfo[] {
-  const count = Math.max(0, Math.min(lineCount, LINE_NUMBERS.length));
-  if (count === 0 || totalTrams === 0) return [];
+const BUS_LINE_NUMBERS = [
+  "100",
+  "101",
+  "112",
+  "119",
+  "124",
+  "131",
+  "136",
+  "139",
+  "140",
+  "142",
+  "149",
+  "154",
+  "159",
+  "177",
+  "191",
+  "201",
+  "213",
+  "907",
+  "908",
+  "909",
+  "910",
+];
 
-  const lines: TramLineInfo[] = [];
-  let remainingTotal = totalTrams;
-  let remainingAC = tramsWithAC;
-  const overallRatio = totalTrams > 0 ? tramsWithAC / totalTrams : 0;
+function generateLineDetails(
+  total: number,
+  withAC: number,
+  lineCount: number,
+  lineNumbers: readonly string[],
+): LineInfo[] {
+  const count = Math.max(0, Math.min(lineCount, lineNumbers.length));
+  if (count === 0 || total === 0) return [];
+
+  const lines: LineInfo[] = [];
+  let remainingTotal = total;
+  let remainingAC = withAC;
+  const overallRatio = total > 0 ? withAC / total : 0;
 
   for (let i = 0; i < count; i += 1) {
     const isLast = i === count - 1;
     const linesLeft = count - i;
     const perLine = Math.max(1, Math.round(remainingTotal / linesLeft));
-    const total = isLast ? remainingTotal : Math.min(perLine, remainingTotal);
+    const lineTotal = isLast ? remainingTotal : Math.min(perLine, remainingTotal);
 
     // Vary AC ratio per line a bit (±20%) but clamp to remaining budget
     const jitter = (((i * 7919) % 100) / 100 - 0.5) * 0.4;
     const targetRatio = Math.max(0, Math.min(1, overallRatio + jitter));
-    const wantAC = Math.round(total * targetRatio);
-    const withAC = isLast ? remainingAC : Math.min(wantAC, remainingAC, total);
+    const wantAC = Math.round(lineTotal * targetRatio);
+    const lineWithAC = isLast ? remainingAC : Math.min(wantAC, remainingAC, lineTotal);
 
     lines.push({
-      lineNumber: LINE_NUMBERS[i],
-      routeId: `route-${LINE_NUMBERS[i]}`,
-      totalVehicles: total,
-      vehiclesWithAC: withAC,
-      vehiclesWithoutAC: total - withAC,
+      lineNumber: lineNumbers[i],
+      routeId: `route-${lineNumbers[i]}`,
+      totalVehicles: lineTotal,
+      vehiclesWithAC: lineWithAC,
+      vehiclesWithoutAC: lineTotal - lineWithAC,
       status: "completed",
     });
 
-    remainingTotal -= total;
-    remainingAC -= withAC;
+    remainingTotal -= lineTotal;
+    remainingAC -= lineWithAC;
   }
 
   return lines;
 }
 
-function buildAnalysisResult(state: DebugState): TramAnalysisResult {
-  const withAC = Math.max(0, Math.min(state.tramsWithAC, state.totalTrams));
-  const withoutAC = state.totalTrams - withAC;
+type VehicleSlice = {
+  total: number;
+  withAC: number;
+  lineCount: number;
+  loading: boolean;
+  error: string;
+};
+
+function sliceFromState(state: DebugState, kind: "tram" | "bus"): VehicleSlice {
+  if (kind === "tram") {
+    return {
+      total: state.totalTrams,
+      withAC: state.tramsWithAC,
+      lineCount: state.tramLineCount,
+      loading: state.tramLoading,
+      error: state.tramError,
+    };
+  }
   return {
-    totalTrams: state.totalTrams,
-    tramsWithAC: withAC,
-    tramsWithoutAC: withoutAC,
+    total: state.totalBuses,
+    withAC: state.busesWithAC,
+    lineCount: state.busLineCount,
+    loading: state.busLoading,
+    error: state.busError,
+  };
+}
+
+function buildAnalysisResult(
+  slice: VehicleSlice,
+  lineNumbers: readonly string[],
+): VehicleAnalysisResult {
+  const withAC = Math.max(0, Math.min(slice.withAC, slice.total));
+  const withoutAC = slice.total - withAC;
+  return {
+    totalVehicles: slice.total,
+    vehiclesWithAC: withAC,
+    vehiclesWithoutAC: withoutAC,
     lastUpdated: new Date(),
-    lineDetails: generateLineDetails(state.totalTrams, withAC, state.lineCount),
+    lineDetails: generateLineDetails(slice.total, withAC, slice.lineCount, lineNumbers),
   };
 }
 
@@ -210,10 +315,13 @@ export function DebugClient() {
     setState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const data = state.loading || state.error ? null : buildAnalysisResult(state);
+  const tramSlice = sliceFromState(state, "tram");
+  const busSlice = sliceFromState(state, "bus");
+  const tramData =
+    tramSlice.loading || tramSlice.error ? null : buildAnalysisResult(tramSlice, TRAM_LINE_NUMBERS);
+  const busData =
+    busSlice.loading || busSlice.error ? null : buildAnalysisResult(busSlice, BUS_LINE_NUMBERS);
   const noop = () => {};
-
-  const withoutAC = Math.max(0, state.totalTrams - state.tramsWithAC);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
@@ -235,86 +343,68 @@ export function DebugClient() {
             </button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              <Field label="Teplota (°C)">
-                <input
-                  type="number"
-                  value={state.temperature ?? ""}
-                  onChange={(event) => {
-                    const raw = event.target.value;
-                    set("temperature", raw === "" ? null : Number(raw));
-                  }}
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Celkem tramvají na trati">
-                <input
-                  type="number"
-                  min={0}
-                  value={state.totalTrams}
-                  onChange={(event) => set("totalTrams", Math.max(0, Number(event.target.value)))}
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Z toho s AC">
-                <input
-                  type="number"
-                  min={0}
-                  max={state.totalTrams}
-                  value={state.tramsWithAC}
-                  onChange={(event) =>
-                    set(
-                      "tramsWithAC",
-                      Math.max(0, Math.min(state.totalTrams, Number(event.target.value))),
-                    )
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Bez AC (odvozené)">
-                <input
-                  type="number"
-                  value={withoutAC}
-                  readOnly
-                  className={`${inputClass} text-gray-500 dark:text-gray-400`}
-                />
-              </Field>
-              <Field label="Počet linek">
-                <input
-                  type="number"
-                  min={0}
-                  max={LINE_NUMBERS.length}
-                  value={state.lineCount}
-                  onChange={(event) =>
-                    set(
-                      "lineCount",
-                      Math.max(0, Math.min(LINE_NUMBERS.length, Number(event.target.value))),
-                    )
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Chybová hláška">
-                <input
-                  type="text"
-                  placeholder="(prázdné = bez chyby)"
-                  value={state.error}
-                  onChange={(event) => set("error", event.target.value)}
-                  className={inputClass}
-                />
-              </Field>
-              <Toggle
-                label="Loading"
-                checked={state.loading}
-                onChange={(checked) => set("loading", checked)}
+          <div className="grid gap-4">
+            <Field label="Teplota (°C)">
+              <input
+                type="number"
+                value={state.temperature ?? ""}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  set("temperature", raw === "" ? null : Number(raw));
+                }}
+                className={inputClass}
               />
-              <Toggle
-                label="Dark mode"
-                checked={state.isDark}
-                onChange={(checked) => set("isDark", checked)}
-              />
-            </div>
+            </Field>
+
+            <VehicleInputs
+              title="Tramvaje 🚋"
+              total={state.totalTrams}
+              withAC={state.tramsWithAC}
+              lineCount={state.tramLineCount}
+              lineCountMax={TRAM_LINE_NUMBERS.length}
+              loading={state.tramLoading}
+              error={state.tramError}
+              onTotal={(value) => {
+                set("totalTrams", Math.max(0, value));
+                if (state.tramsWithAC > value) set("tramsWithAC", Math.max(0, value));
+              }}
+              onWithAC={(value) =>
+                set("tramsWithAC", Math.max(0, Math.min(state.totalTrams, value)))
+              }
+              onLineCount={(value) =>
+                set("tramLineCount", Math.max(0, Math.min(TRAM_LINE_NUMBERS.length, value)))
+              }
+              onLoading={(checked) => set("tramLoading", checked)}
+              onError={(value) => set("tramError", value)}
+            />
+
+            <VehicleInputs
+              title="Autobusy 🚌"
+              total={state.totalBuses}
+              withAC={state.busesWithAC}
+              lineCount={state.busLineCount}
+              lineCountMax={BUS_LINE_NUMBERS.length}
+              loading={state.busLoading}
+              error={state.busError}
+              onTotal={(value) => {
+                set("totalBuses", Math.max(0, value));
+                if (state.busesWithAC > value) set("busesWithAC", Math.max(0, value));
+              }}
+              onWithAC={(value) =>
+                set("busesWithAC", Math.max(0, Math.min(state.totalBuses, value)))
+              }
+              onLineCount={(value) =>
+                set("busLineCount", Math.max(0, Math.min(BUS_LINE_NUMBERS.length, value)))
+              }
+              onLoading={(checked) => set("busLoading", checked)}
+              onError={(value) => set("busError", value)}
+            />
+
+            <Toggle
+              label="Dark mode"
+              checked={state.isDark}
+              onChange={(checked) => set("isDark", checked)}
+            />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -335,15 +425,18 @@ export function DebugClient() {
       </div>
 
       <div data-theme={state.isDark ? "dark" : "light"}>
-        <TramStatusView
-          data={data}
-          error={state.error || null}
-          lastUpdated={mounted && data ? new Date() : null}
+        <DashboardView
+          tramData={tramData}
+          tramError={state.tramError || null}
+          onTramRetry={noop}
+          busData={busData}
+          busError={state.busError || null}
+          onBusRetry={noop}
+          lastUpdated={mounted && (tramData || busData) ? new Date() : null}
           paused={false}
           onTogglePaused={noop}
           temperature={state.temperature}
           isDark={state.isDark}
-          onRetry={noop}
         />
       </div>
     </div>
@@ -352,6 +445,94 @@ export function DebugClient() {
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-gray-900 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100";
+
+type VehicleInputsProps = {
+  title: string;
+  total: number;
+  withAC: number;
+  lineCount: number;
+  lineCountMax: number;
+  loading: boolean;
+  error: string;
+  onTotal: (value: number) => void;
+  onWithAC: (value: number) => void;
+  onLineCount: (value: number) => void;
+  onLoading: (checked: boolean) => void;
+  onError: (value: string) => void;
+};
+
+function VehicleInputs({
+  title,
+  total,
+  withAC,
+  lineCount,
+  lineCountMax,
+  loading,
+  error,
+  onTotal,
+  onWithAC,
+  onLineCount,
+  onLoading,
+  onError,
+}: VehicleInputsProps) {
+  const withoutAC = Math.max(0, total - withAC);
+  return (
+    <fieldset className="rounded-md border border-gray-200 p-3 dark:border-gray-800">
+      <legend className="px-1 font-semibold text-gray-700 text-xs dark:text-gray-300">
+        {title}
+      </legend>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <Field label="Celkem na trati">
+          <input
+            type="number"
+            min={0}
+            value={total}
+            onChange={(event) => onTotal(Number(event.target.value))}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Z toho s AC">
+          <input
+            type="number"
+            min={0}
+            max={total}
+            value={withAC}
+            onChange={(event) => onWithAC(Number(event.target.value))}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Bez AC (odvozené)">
+          <input
+            type="number"
+            value={withoutAC}
+            readOnly
+            className={`${inputClass} text-gray-500 dark:text-gray-400`}
+          />
+        </Field>
+        <Field label="Počet linek">
+          <input
+            type="number"
+            min={0}
+            max={lineCountMax}
+            value={lineCount}
+            onChange={(event) => onLineCount(Number(event.target.value))}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Chybová hláška">
+          <input
+            type="text"
+            placeholder="(prázdné = bez chyby)"
+            value={error}
+            onChange={(event) => onError(event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Toggle label="Loading" checked={loading} onChange={onLoading} />
+      </div>
+    </fieldset>
+  );
+}
 
 function Field({
   label,
@@ -485,7 +666,7 @@ function Thresholds() {
           </table>
           <p className="mt-3 text-gray-600 text-xs dark:text-gray-400">
             Pod <span className="font-mono">{COOL_CUTOFF_C} °C</span> karta linky přepne na
-            neutrální šedou a emoji na 🚋.
+            neutrální šedou a emoji na odpovídající vozidlo (🚋 / 🚌).
           </p>
         </section>
       </div>

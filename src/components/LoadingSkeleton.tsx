@@ -6,7 +6,7 @@ export function SkeletonBlock() {
   );
 }
 
-export function TramLineSkeleton() {
+export function LineSkeleton() {
   return (
     <div className="h-16 w-40 shrink-0 rounded-2xl bg-gray-500/20 p-3 backdrop-blur-sm dark:bg-gray-700/30">
       <div className="grid h-full w-full grid-cols-3 items-center gap-1">

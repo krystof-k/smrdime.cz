@@ -1,5 +1,5 @@
-import TramStatus from "@/components/TramStatus";
+import DashboardClient from "@/components/DashboardClient";
 
 export default function Home() {
-  return <TramStatus />;
+  return <DashboardClient />;
 }

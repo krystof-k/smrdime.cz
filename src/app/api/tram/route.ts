@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyzeTramACStatus } from "@/lib/tram-analysis";
+import { analyzeACStatus, ROUTE_TYPE_TRAM } from "@/lib/analysis";
 
 /**
  * Cached at the edge for 30 s, with SWR so requests after expiry return stale
@@ -14,7 +14,7 @@ const ERROR_CACHE_CONTROL = "public, s-maxage=5";
 
 export async function GET() {
   try {
-    const analysis = await analyzeTramACStatus();
+    const analysis = await analyzeACStatus(ROUTE_TYPE_TRAM);
     return NextResponse.json(analysis, {
       headers: { "Cache-Control": CACHE_CONTROL },
     });

@@ -1,34 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { TramAnalysisResult } from "@/lib/tram-analysis";
-import { ErrorView } from "./ErrorView";
+import type { VehicleAnalysisResult } from "@/lib/analysis";
+import { BusHeadline } from "./BusHeadline";
+import { BusSummary } from "./BusSummary";
 import { Footer } from "./Footer";
 import { TramHeadline } from "./TramHeadline";
-import { TramLineScroller } from "./TramLineScroller";
 import { TramSummary } from "./TramSummary";
+import { VehicleSection } from "./VehicleSection";
 
-type TramStatusViewProps = {
-  data: TramAnalysisResult | null;
-  error: string | null;
+type DashboardViewProps = {
+  tramData: VehicleAnalysisResult | null;
+  tramError: string | null;
+  onTramRetry: () => void;
+  busData: VehicleAnalysisResult | null;
+  busError: string | null;
+  onBusRetry: () => void;
   lastUpdated: Date | null;
   paused: boolean;
   onTogglePaused: () => void;
   temperature: number | null;
   isDark: boolean;
-  onRetry: () => void;
 };
 
-export function TramStatusView({
-  data,
-  error,
+export function DashboardView({
+  tramData,
+  tramError,
+  onTramRetry,
+  busData,
+  busError,
+  onBusRetry,
   lastUpdated,
   paused,
   onTogglePaused,
   temperature,
   isDark,
-  onRetry,
-}: TramStatusViewProps) {
+}: DashboardViewProps) {
   const [showPercentages, setShowPercentages] = useState(false);
 
   // Document-level tap-to-toggle. Lives off the JSX so the wrapper stays a
@@ -47,42 +54,70 @@ export function TramStatusView({
 
   return (
     <div className="grid min-h-screen cursor-pointer grid-rows-[1fr_auto] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
-      <main className="flex flex-col justify-center">
-        {error && !data ? (
-          <ErrorView message={error} onRetry={onRetry} />
-        ) : (
-          <div className="text-left">
-            <div className="grid gap-y-2 px-4 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-6 md:gap-y-0 md:px-8 lg:px-12">
-              <div className="md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
-                <TopControls
-                  lastUpdated={lastUpdated}
-                  paused={paused}
-                  onTogglePaused={onTogglePaused}
-                  showPercentages={showPercentages}
-                  onToggleShowPercentages={() => setShowPercentages((prev) => !prev)}
-                />
-              </div>
-              <div className="md:col-start-1 md:row-start-1">
-                <TramHeadline
-                  data={data}
-                  temperature={temperature}
-                  showPercentages={showPercentages}
-                />
-                <TramSummary
-                  data={data}
-                  temperature={temperature}
-                  showPercentages={showPercentages}
-                />
-              </div>
-            </div>
-            <TramLineScroller
-              lines={data?.lineDetails ?? null}
-              temperature={temperature}
-              isDark={isDark}
+      <main className="flex flex-col">
+        <div className="grid gap-y-2 px-4 pt-4 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-6 md:gap-y-0 md:px-8 md:pt-6 lg:px-12">
+          <div className="md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
+            <TopControls
+              lastUpdated={lastUpdated}
+              paused={paused}
+              onTogglePaused={onTogglePaused}
               showPercentages={showPercentages}
+              onToggleShowPercentages={() => setShowPercentages((prev) => !prev)}
             />
           </div>
-        )}
+        </div>
+        <section className="flex flex-1 flex-col justify-center py-12">
+          <VehicleSection
+            kind="tram"
+            data={tramData}
+            error={tramError}
+            onRetry={onTramRetry}
+            temperature={temperature}
+            isDark={isDark}
+            showPercentages={showPercentages}
+            coolEmoji="🚋"
+            headline={
+              <TramHeadline
+                data={tramData}
+                temperature={temperature}
+                showPercentages={showPercentages}
+              />
+            }
+            summary={
+              <TramSummary
+                data={tramData}
+                temperature={temperature}
+                showPercentages={showPercentages}
+              />
+            }
+          />
+        </section>
+        <section className="flex flex-1 flex-col justify-center border-slate-200/70 border-t bg-white/40 py-12 dark:border-slate-800/70 dark:bg-slate-900/30">
+          <VehicleSection
+            kind="bus"
+            data={busData}
+            error={busError}
+            onRetry={onBusRetry}
+            temperature={temperature}
+            isDark={isDark}
+            showPercentages={showPercentages}
+            coolEmoji="🚌"
+            headline={
+              <BusHeadline
+                data={busData}
+                temperature={temperature}
+                showPercentages={showPercentages}
+              />
+            }
+            summary={
+              <BusSummary
+                data={busData}
+                temperature={temperature}
+                showPercentages={showPercentages}
+              />
+            }
+          />
+        </section>
       </main>
       <Footer />
     </div>

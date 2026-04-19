@@ -1,22 +1,24 @@
-import type { TramLineInfo } from "@/lib/tram-analysis";
-import { TramLineSkeleton } from "./LoadingSkeleton";
-import { TramLineCard } from "./TramLineCard";
+import type { LineInfo } from "@/lib/analysis";
+import { LineCard } from "./LineCard";
+import { LineSkeleton } from "./LoadingSkeleton";
 
 const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
-type TramLineScrollerProps = {
-  lines: TramLineInfo[] | null;
+type LineScrollerProps = {
+  lines: LineInfo[] | null;
   temperature: number | null;
   isDark: boolean;
   showPercentages: boolean;
+  coolEmoji: string;
 };
 
-export function TramLineScroller({
+export function LineScroller({
   lines,
   temperature,
   isDark,
   showPercentages,
-}: TramLineScrollerProps) {
+  coolEmoji,
+}: LineScrollerProps) {
   return (
     <div className="mt-8">
       <div
@@ -25,21 +27,22 @@ export function TramLineScroller({
       >
         {lines
           ? sortedActiveLines(lines).map((line) => (
-              <TramLineCard
+              <LineCard
                 key={line.routeId}
                 line={line}
                 temperature={temperature}
                 isDark={isDark}
                 showPercentages={showPercentages}
+                coolEmoji={coolEmoji}
               />
             ))
-          : SKELETON_KEYS.map((key) => <TramLineSkeleton key={key} />)}
+          : SKELETON_KEYS.map((key) => <LineSkeleton key={key} />)}
       </div>
     </div>
   );
 }
 
-function sortedActiveLines(lines: TramLineInfo[]): TramLineInfo[] {
+function sortedActiveLines(lines: LineInfo[]): LineInfo[] {
   return lines
     .filter((line) => line.totalVehicles > 0)
     .toSorted((a, b) => a.vehiclesWithAC / a.totalVehicles - b.vehiclesWithAC / b.totalVehicles);

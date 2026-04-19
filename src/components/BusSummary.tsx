@@ -1,22 +1,19 @@
 import type { VehicleAnalysisResult } from "@/lib/analysis";
-import { AC_FLEET_TOTAL } from "@/lib/constants";
+import { AC_FLEET_BUS_TOTAL } from "@/lib/constants";
 import { getTemperatureColor, NEUTRAL_TEXT_COLOR } from "@/lib/display";
 import { percentWithoutAC, roundPercent } from "@/lib/ratios";
-import { DppInfoPopover } from "./DppInfoPopover";
+import { BusDppInfoPopover } from "./BusDppInfoPopover";
 import { SkeletonBlock } from "./LoadingSkeleton";
 
-type TramSummaryProps = {
+type BusSummaryProps = {
   data: VehicleAnalysisResult | null;
   temperature: number | null;
   showPercentages: boolean;
 };
 
-export function TramSummary({ data, temperature, showPercentages }: TramSummaryProps) {
+export function BusSummary({ data, temperature, showPercentages }: BusSummaryProps) {
   const emphasisColor =
     temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
-  // First emphasis ("80 z 120" / "67 % z 120") is inverted vs the headline so
-  // both forms are on screen at once. The second emphasis ("ze všech 147")
-  // follows the toggle directly — there's no headline counterpart for it.
   const summaryShowsPercentages = !showPercentages;
 
   return (
@@ -44,10 +41,12 @@ export function TramSummary({ data, temperature, showPercentages }: TramSummaryP
               z {data.totalVehicles}
             </>
           )}{" "}
-          tramvají, které jsou právě na trati a{" "}
+          autobusů, které jsou právě na trati a{" "}
           {showPercentages ? (
             <span className={`font-black ${emphasisColor}`}>
-              <span className="font-mono">{roundPercent(data.vehiclesWithAC, AC_FLEET_TOTAL)}</span>{" "}
+              <span className="font-mono">
+                {roundPercent(data.vehiclesWithAC, AC_FLEET_BUS_TOTAL)}
+              </span>{" "}
               <span className="font-mono">%</span>
             </span>
           ) : (
@@ -55,19 +54,19 @@ export function TramSummary({ data, temperature, showPercentages }: TramSummaryP
               <span className="font-mono">{data.vehiclesWithAC}</span>
             </span>
           )}{" "}
-          ze všech {AC_FLEET_TOTAL} klimatizovaných tramvají.
+          ze všech {AC_FLEET_BUS_TOTAL} klimatizovaných autobusů.
           <sup>
             {" "}
-            <DppInfoPopover />
+            <BusDppInfoPopover />
           </sup>
         </>
       ) : (
         <>
-          To je <SkeletonBlock /> z <SkeletonBlock /> tramvají, které jsou právě na trati a{" "}
-          <SkeletonBlock /> ze všech {AC_FLEET_TOTAL} klimatizovaných tramvají.
+          To je <SkeletonBlock /> z <SkeletonBlock /> autobusů, které jsou právě na trati a{" "}
+          <SkeletonBlock /> ze všech {AC_FLEET_BUS_TOTAL} klimatizovaných autobusů.
           <sup>
             {" "}
-            <DppInfoPopover />
+            <BusDppInfoPopover />
           </sup>
         </>
       )}

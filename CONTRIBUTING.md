@@ -4,7 +4,7 @@ Díky, že chcete přispět!
 
 ## Co projekt dělá
 
-V reálném čase ukazuje, kolik tramvají aktuálně jezdí po Praze bez klimatizace. Polohy tramvají tahá z Golemio API a páruje je s aktuální teplotou z Open-Meteo. Barvy a emoji na stránce se pak podle teploty a podílu klimatizovaných tramvají mění od klidných po dost naštvané.
+V reálném čase ukazuje, kolik tramvají a autobusů aktuálně jezdí po Praze bez klimatizace. Polohy vozů tahá z Golemio API a páruje je s aktuální teplotou z Open-Meteo. Barvy a emoji na stránce se pak podle teploty a podílu klimatizovaných vozů mění od klidných po dost naštvané.
 
 ## Tech stack
 
@@ -14,7 +14,7 @@ V reálném čase ukazuje, kolik tramvají aktuálně jezdí po Praze bez klimat
 - **node --test** pro unit testy, **Playwright** pro E2E
 - **Biome** pro formátování a lint
 - **pnpm** jako package manager
-- data z **[Golemio API](https://api.golemio.cz)** (tramvaje) a **[Open-Meteo](https://open-meteo.com/en/docs)** (počasí)
+- data z **[Golemio API](https://api.golemio.cz)** (tramvaje a autobusy) a **[Open-Meteo](https://open-meteo.com/en/docs)** (počasí)
 
 ## Jak rozjet projekt lokálně
 

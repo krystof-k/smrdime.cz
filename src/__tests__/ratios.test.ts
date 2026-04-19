@@ -26,9 +26,9 @@ describe("percentWithoutAC", () => {
   it("computes the rounded percentage from analysis result fields", () => {
     assert.equal(
       percentWithoutAC({
-        totalTrams: 120,
-        tramsWithoutAC: 80,
-        tramsWithAC: 40,
+        totalVehicles: 120,
+        vehiclesWithoutAC: 80,
+        vehiclesWithAC: 40,
         lastUpdated: new Date(),
         lineDetails: [],
       }),
@@ -36,12 +36,12 @@ describe("percentWithoutAC", () => {
     );
   });
 
-  it("returns 0 when there are no trams", () => {
+  it("returns 0 when there are no vehicles", () => {
     assert.equal(
       percentWithoutAC({
-        totalTrams: 0,
-        tramsWithoutAC: 0,
-        tramsWithAC: 0,
+        totalVehicles: 0,
+        vehiclesWithoutAC: 0,
+        vehiclesWithAC: 0,
         lastUpdated: new Date(),
         lineDetails: [],
       }),

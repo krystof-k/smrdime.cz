@@ -3,8 +3,9 @@ import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import "./globals.css";
 
-const TITLE = "Smrdíme? Kolik pražských tramvají jede bez klimatizace";
-const DESCRIPTION = "Živý přehled, kolik pražských tramvají zrovna jezdí bez klimatizace.";
+const TITLE = "Smrdíme? Kolik pražských tramvají a autobusů jede bez klimatizace";
+const DESCRIPTION =
+  "Živý přehled, kolik pražských tramvají a autobusů zrovna jezdí bez klimatizace.";
 
 export const metadata: Metadata = {
   title: TITLE,

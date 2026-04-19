@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { createTramRoutesLoader, getVehiclePositions, type Route } from "../lib/golemio-api.ts";
+import {
+  createRoutesLoader,
+  getVehiclePositions,
+  ROUTE_TYPE_BUS,
+  ROUTE_TYPE_TRAM,
+  type Route,
+} from "../lib/golemio-api.ts";
 
 const originalFetch = globalThis.fetch;
 const fetchCalls: Array<[string, RequestInit | undefined]> = [];
@@ -54,12 +60,12 @@ function queueStatus(status: number, statusText: string) {
   );
 }
 
-function tramRoute(id: string): Route {
+function routeOfType(id: string, routeType: number): Route {
   return {
     route_id: id,
     route_short_name: id,
     route_long_name: id,
-    route_type: 0,
+    route_type: routeType,
     route_color: "#f00",
   };
 }
@@ -67,7 +73,7 @@ function tramRoute(id: string): Route {
 describe("tram routes loader", () => {
   it("requests /v2/gtfs/routes with X-Access-Token header", async () => {
     queueJson([]);
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     await loader();
 
     const [url, init] = fetchCalls[0];
@@ -79,18 +85,13 @@ describe("tram routes loader", () => {
 
   it("filters out non-tram routes (route_type !== 0)", async () => {
     queueJson([
-      tramRoute("1"),
-      {
-        route_id: "B",
-        route_short_name: "B",
-        route_long_name: "Metro",
-        route_type: 1,
-        route_color: "#0f0",
-      },
-      tramRoute("22"),
+      routeOfType("1", ROUTE_TYPE_TRAM),
+      routeOfType("B", 1),
+      routeOfType("100", ROUTE_TYPE_BUS),
+      routeOfType("22", ROUTE_TYPE_TRAM),
     ]);
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     const routes = await loader();
     assert.deepEqual(
       routes.map((r) => r.route_id),
@@ -101,15 +102,15 @@ describe("tram routes loader", () => {
   it("throws on 5xx", async () => {
     queueStatus(500, "Server Error");
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     await assert.rejects(loader(), /API request failed: 500 Server Error/);
     assert.equal(fetchCalls.length, 1);
   });
 
   it("caches routes across calls within one loader instance", async () => {
-    queueJson([tramRoute("1")]);
+    queueJson([routeOfType("1", ROUTE_TYPE_TRAM)]);
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     await loader();
     await loader();
     await loader();
@@ -118,10 +119,10 @@ describe("tram routes loader", () => {
   });
 
   it("refetches once the TTL has elapsed", async () => {
-    queueJson([tramRoute("1")]);
-    queueJson([tramRoute("2")]);
+    queueJson([routeOfType("1", ROUTE_TYPE_TRAM)]);
+    queueJson([routeOfType("2", ROUTE_TYPE_TRAM)]);
 
-    const loader = createTramRoutesLoader(0);
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM, 0);
     await loader();
     await loader();
 
@@ -146,7 +147,7 @@ describe("tram routes loader", () => {
         }),
     );
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     await assert.rejects(loader(), { name: "AbortError" });
   });
 
@@ -154,12 +155,44 @@ describe("tram routes loader", () => {
     const saved = process.env.GOLEMIO_API_KEY;
     delete process.env.GOLEMIO_API_KEY;
     try {
-      const loader = createTramRoutesLoader();
+      const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
       await assert.rejects(loader(), /GOLEMIO_API_KEY is not set/);
       assert.equal(fetchCalls.length, 0);
     } finally {
       process.env.GOLEMIO_API_KEY = saved;
     }
+  });
+});
+
+describe("bus routes loader", () => {
+  it("filters out non-bus routes (route_type !== 3)", async () => {
+    queueJson([
+      routeOfType("1", ROUTE_TYPE_TRAM),
+      routeOfType("100", ROUTE_TYPE_BUS),
+      routeOfType("B", 1),
+      routeOfType("200", ROUTE_TYPE_BUS),
+    ]);
+
+    const loader = createRoutesLoader(ROUTE_TYPE_BUS);
+    const routes = await loader();
+    assert.deepEqual(
+      routes.map((r) => r.route_id),
+      ["100", "200"],
+    );
+  });
+
+  it("keeps its own cache separate from the tram loader", async () => {
+    queueJson([routeOfType("1", ROUTE_TYPE_TRAM)]);
+    queueJson([routeOfType("100", ROUTE_TYPE_BUS)]);
+
+    const tramLoader = createRoutesLoader(ROUTE_TYPE_TRAM);
+    const busLoader = createRoutesLoader(ROUTE_TYPE_BUS);
+    const trams = await tramLoader();
+    const buses = await busLoader();
+
+    assert.equal(fetchCalls.length, 2);
+    assert.equal(trams[0].route_id, "1");
+    assert.equal(buses[0].route_id, "100");
   });
 });
 

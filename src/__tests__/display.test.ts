@@ -9,23 +9,25 @@ import {
 } from "../lib/display.ts";
 
 describe("getACEmoji", () => {
-  it("shows only the tram emoji when cool (< 22°C)", () => {
-    assert.equal(getACEmoji(0, 15), "🚋");
-    assert.equal(getACEmoji(100, 15), "🚋");
+  it("shows the supplied cool emoji when cool (< 22°C)", () => {
+    assert.equal(getACEmoji(0, 15, "🚋"), "🚋");
+    assert.equal(getACEmoji(100, 15, "🚋"), "🚋");
+    assert.equal(getACEmoji(0, 15, "🚌"), "🚌");
+    assert.equal(getACEmoji(100, 15, "🚌"), "🚌");
   });
   it("caps emoji severity based on temperature tier", () => {
-    assert.equal(getACEmoji(0, 22), "😐");
-    assert.equal(getACEmoji(0, 27), "☀️");
-    assert.equal(getACEmoji(0, 32), "🔥");
-    assert.equal(getACEmoji(0, 40), "💀");
+    assert.equal(getACEmoji(0, 22, "🚋"), "😐");
+    assert.equal(getACEmoji(0, 27, "🚋"), "☀️");
+    assert.equal(getACEmoji(0, 32, "🚋"), "🔥");
+    assert.equal(getACEmoji(0, 40, "🚋"), "💀");
   });
   it("shows the best emoji at 90%+ AC coverage", () => {
-    assert.equal(getACEmoji(95, 30), "❄️");
+    assert.equal(getACEmoji(95, 30, "🚋"), "❄️");
   });
   it("does not flash red/💀 while temperature is unknown", () => {
-    assert.notEqual(getACEmoji(0, null), "💀");
-    assert.notEqual(getACEmoji(0, null), "🔥");
-    assert.notEqual(getACEmoji(0, null), "☀️");
+    assert.notEqual(getACEmoji(0, null, "🚋"), "💀");
+    assert.notEqual(getACEmoji(0, null, "🚋"), "🔥");
+    assert.notEqual(getACEmoji(0, null, "🚋"), "☀️");
   });
 });
 

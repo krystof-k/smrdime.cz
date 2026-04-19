@@ -1,6 +1,6 @@
 /**
  * Below this temperature the UI drops the alarm vibe:
- *   - card emoji becomes a plain 🚋 regardless of AC coverage
+ *   - card emoji becomes a plain vehicle icon (🚋 / 🚌) regardless of AC coverage
  *   - card background becomes neutral grey
  *
  * Matches PID quality standard 4.2.9.2: under 22 °C the AC is not required
@@ -142,8 +142,8 @@ function levelFor(percentage: number, temp: number | null): ACLevel {
 const NEUTRAL_LIGHT = "rgb(229 231 235)";
 const NEUTRAL_DARK = "rgb(55 65 81)";
 
-export function getACEmoji(percentage: number, temp: number | null): string {
-  if (temp !== null && temp < COOL_CUTOFF_C) return "🚋";
+export function getACEmoji(percentage: number, temp: number | null, coolEmoji: string): string {
+  if (temp !== null && temp < COOL_CUTOFF_C) return coolEmoji;
   return levelFor(percentage, temp).emoji;
 }
 

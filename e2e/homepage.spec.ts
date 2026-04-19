@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 const sampleTramStatus = {
-  totalTrams: 120,
-  tramsWithAC: 40,
-  tramsWithoutAC: 80,
+  totalVehicles: 120,
+  vehiclesWithAC: 40,
+  vehiclesWithoutAC: 80,
   lastUpdated: new Date("2026-04-19T12:00:00Z").toISOString(),
   lineDetails: [
     {
@@ -25,10 +25,45 @@ const sampleTramStatus = {
   ],
 };
 
+const sampleBusStatus = {
+  totalVehicles: 300,
+  vehiclesWithAC: 180,
+  vehiclesWithoutAC: 120,
+  lastUpdated: new Date("2026-04-19T12:00:00Z").toISOString(),
+  lineDetails: [
+    {
+      lineNumber: "100",
+      routeId: "bus-100",
+      totalVehicles: 30,
+      vehiclesWithAC: 20,
+      vehiclesWithoutAC: 10,
+      status: "completed",
+    },
+    {
+      lineNumber: "136",
+      routeId: "bus-136",
+      totalVehicles: 25,
+      vehiclesWithAC: 10,
+      vehiclesWithoutAC: 15,
+      status: "completed",
+    },
+  ],
+};
+
 const sampleWeather = { temperature: 28 };
 
 async function mockTram(page: import("@playwright/test").Page, payload: unknown, status = 200) {
   await page.route("**/api/tram", (route) =>
+    route.fulfill({
+      status,
+      contentType: "application/json",
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+async function mockBus(page: import("@playwright/test").Page, payload: unknown, status = 200) {
+  await page.route("**/api/bus", (route) =>
     route.fulfill({
       status,
       contentType: "application/json",
@@ -50,25 +85,32 @@ async function mockWeather(page: import("@playwright/test").Page, payload: unkno
 test.describe("happy path", () => {
   test.beforeEach(async ({ page }) => {
     await mockTram(page, sampleTramStatus);
+    await mockBus(page, sampleBusStatus);
     await mockWeather(page, sampleWeather);
   });
 
-  test("renders the headline with temperature and tram count", async ({ page }) => {
+  test("renders both tram and bus headlines with the shared temperature", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Praze");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("bez klimatizace");
+    const headings = page.getByRole("heading", { level: 1 });
+    await expect(headings).toHaveCount(2);
+    await expect(headings.nth(0)).toContainText("Praze");
+    await expect(headings.nth(0)).toContainText("tramvají");
+    await expect(headings.nth(1)).toContainText("autobusů");
+    await expect(headings.nth(1)).not.toContainText("V Praze");
     await expect(page.getByText("28°C")).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
-    await expect(page.getByText(/147/)).toBeVisible();
+    await expect(page.getByText("120").first()).toBeVisible();
   });
 
-  test("tap-to-toggle flips between counts and percentages", async ({ page }) => {
+  test("tap-to-toggle flips both sections between counts and percentages", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("28°C")).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
 
-    await page.getByRole("heading", { level: 1 }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("%");
+    await page.getByRole("heading", { level: 1 }).first().click();
+    const headings = page.getByRole("heading", { level: 1 });
+    await expect(headings.nth(0)).toContainText("%");
+    await expect(headings.nth(1)).toContainText("%");
   });
 
   test("toggle button switches the label and reflects pressed state", async ({ page }) => {
@@ -83,15 +125,25 @@ test.describe("happy path", () => {
     );
   });
 
-  test("dpp.cz popover reveals the 15T + 52T breakdown", async ({ page }) => {
+  test("dpp.cz popover reveals the 15T + 52T breakdown on the tram side", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "dpp.cz" }).click();
-    const tooltip = page.getByRole("tooltip");
+    await page.getByRole("button", { name: "dpp.cz" }).first().click();
+    const tooltip = page.getByRole("tooltip").first();
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toContainText("127");
     await expect(tooltip).toContainText("Škoda 15T");
     await expect(tooltip).toContainText("20");
     await expect(tooltip).toContainText("Škoda 52T");
+  });
+
+  test("dpp.cz popover on the bus side cites the AC % and fleet size", async ({ page }) => {
+    await page.goto("/");
+    const busPopoverTrigger = page.getByRole("button", { name: "dpp.cz" }).last();
+    await busPopoverTrigger.click();
+    const tooltip = page.getByRole("tooltip").last();
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("66,18");
+    await expect(tooltip).toContainText("autobus");
   });
 
   test("pause button toggles aria-pressed", async ({ page }) => {
@@ -107,31 +159,56 @@ test.describe("happy path", () => {
   });
 });
 
-test.describe("error state", () => {
+test.describe("tram upstream error", () => {
   test.beforeEach(async ({ page }) => {
     await mockTram(page, { error: "Failed to fetch tram status" }, 500);
+    await mockBus(page, sampleBusStatus);
     await mockWeather(page, sampleWeather);
   });
 
-  test("renders the error view with a retry button", async ({ page }) => {
+  test("shows error only on the tram section; bus section still renders", async ({ page }) => {
     await page.goto("/");
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toContainText("chaos");
-    await expect(heading).toContainText("nevíme");
+    const errorHeading = page.getByRole("heading", { level: 1 }).filter({ hasText: "chaos" });
+    await expect(errorHeading).toBeVisible();
+    await expect(errorHeading).toContainText("tramvají");
     await expect(page.getByRole("button", { name: "znovu" })).toBeVisible();
+    const busHeading = page.getByRole("heading", { level: 1 }).filter({ hasText: "autobusů" });
+    await expect(busHeading).toBeVisible();
+  });
+});
+
+test.describe("bus upstream error", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockTram(page, sampleTramStatus);
+    await mockBus(page, { error: "Failed to fetch bus status" }, 500);
+    await mockWeather(page, sampleWeather);
+  });
+
+  test("shows error only on the bus section; tram section still renders", async ({ page }) => {
+    await page.goto("/");
+    const tramHeading = page.getByRole("heading", { level: 1 }).filter({ hasText: "tramvají" });
+    await expect(tramHeading).toBeVisible();
+    await expect(tramHeading).toContainText("V Praze");
+    const errorHeading = page.getByRole("heading", { level: 1 }).filter({ hasText: "chaos" });
+    await expect(errorHeading).toBeVisible();
+    await expect(errorHeading).toContainText("autobusů");
   });
 });
 
 test.describe("weather missing", () => {
   test.beforeEach(async ({ page }) => {
     await mockTram(page, sampleTramStatus);
+    await mockBus(page, sampleBusStatus);
     await mockWeather(page, { error: "boom" }, 500);
   });
 
-  test("renders the headline without temperature when weather is unavailable", async ({ page }) => {
+  test("renders the headlines without temperature when weather is unavailable", async ({
+    page,
+  }) => {
     await page.goto("/");
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toContainText("V Praze jezdí");
-    await expect(heading).not.toContainText("°C");
+    const headings = page.getByRole("heading", { level: 1 });
+    await expect(headings.nth(0)).toContainText("V Praze jezdí");
+    await expect(headings.nth(0)).not.toContainText("°C");
+    await expect(headings.nth(1)).toContainText("autobusů");
   });
 });
