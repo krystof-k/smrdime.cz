@@ -15,6 +15,8 @@ function route(id: string, routeType: number, name = id): Route {
     route_long_name: name,
     route_type: routeType,
     route_color: "#000",
+    agency_id: "99",
+    is_regional: false,
   };
 }
 
@@ -103,5 +105,26 @@ describe("analyze", () => {
     assert.equal(result.totalVehicles, 0);
     assert.equal(result.vehiclesWithoutAC, 0);
     assert.equal(result.lineDetails[0].totalVehicles, 0);
+  });
+
+  it("drops vehicles whose route_id is not in the (DPP-filtered) routes list", () => {
+    // Routes list only contains DPP route 100. The vehiclepositions payload
+    // still includes a vehicle on route 381 (a regional bus) — it must not
+    // be counted in the totals or the per-line breakdown.
+    const result = analyze(
+      [route("100", ROUTE_TYPE_BUS)],
+      [
+        vehicle("100", ROUTE_TYPE_BUS, true, "dpp-1"),
+        vehicle("100", ROUTE_TYPE_BUS, false, "dpp-2"),
+        vehicle("381", ROUTE_TYPE_BUS, false, "regional-1"),
+      ],
+      ROUTE_TYPE_BUS,
+      FIXED_DATE,
+    );
+
+    assert.equal(result.totalVehicles, 2);
+    assert.equal(result.vehiclesWithoutAC, 1);
+    assert.equal(result.lineDetails.length, 1);
+    assert.equal(result.lineDetails[0].lineNumber, "100");
   });
 });

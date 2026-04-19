@@ -15,12 +15,24 @@ export const ROUTE_TYPE_TRAM = 0;
 export const ROUTE_TYPE_BUS = 3;
 export type SupportedRouteType = typeof ROUTE_TYPE_TRAM | typeof ROUTE_TYPE_BUS;
 
+/**
+ * Prague's PID GTFS is multi-operator: DPP (urban metro/tram/bus) shares the
+ * feed with regional carriers like Arriva and ČSAD. We filter to DPP-only via
+ * the PID-assigned agency_id "99" (confirmed in the Golemio OpenAPI schema
+ * example for metro line A, route_id "L991"). Keeping this central so the
+ * tram loader benefits from the same check even though all Prague trams are
+ * DPP today.
+ */
+export const DPP_AGENCY_ID = "99";
+
 export interface Route {
   route_id: string;
   route_short_name: string;
   route_long_name: string;
   route_type: number;
   route_color: string;
+  agency_id: string;
+  is_regional: boolean;
 }
 
 export interface VehiclePosition {
@@ -77,7 +89,9 @@ export function createRoutesLoader(
     if (cached && cached.expiresAt > now) return cached.data;
 
     const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
-    const filtered = routes.filter((route) => route.route_type === routeType);
+    const filtered = routes.filter(
+      (route) => route.route_type === routeType && route.agency_id === DPP_AGENCY_ID,
+    );
     cached = { data: filtered, expiresAt: now + ttlMs };
     return filtered;
   };

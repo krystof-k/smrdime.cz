@@ -60,13 +60,19 @@ function queueStatus(status: number, statusText: string) {
   );
 }
 
-function routeOfType(id: string, routeType: number): Route {
+function routeOfType(
+  id: string,
+  routeType: number,
+  { agency_id = "99", is_regional = false }: { agency_id?: string; is_regional?: boolean } = {},
+): Route {
   return {
     route_id: id,
     route_short_name: id,
     route_long_name: id,
     route_type: routeType,
     route_color: "#f00",
+    agency_id,
+    is_regional,
   };
 }
 
@@ -171,6 +177,22 @@ describe("bus routes loader", () => {
       routeOfType("100", ROUTE_TYPE_BUS),
       routeOfType("B", 1),
       routeOfType("200", ROUTE_TYPE_BUS),
+    ]);
+
+    const loader = createRoutesLoader(ROUTE_TYPE_BUS);
+    const routes = await loader();
+    assert.deepEqual(
+      routes.map((r) => r.route_id),
+      ["100", "200"],
+    );
+  });
+
+  it("filters out non-DPP bus routes (agency_id !== '99')", async () => {
+    queueJson([
+      routeOfType("100", ROUTE_TYPE_BUS), // DPP
+      routeOfType("381", ROUTE_TYPE_BUS, { agency_id: "11", is_regional: true }), // regional
+      routeOfType("950", ROUTE_TYPE_BUS, { agency_id: "42", is_regional: false }), // non-DPP urban
+      routeOfType("200", ROUTE_TYPE_BUS), // DPP
     ]);
 
     const loader = createRoutesLoader(ROUTE_TYPE_BUS);

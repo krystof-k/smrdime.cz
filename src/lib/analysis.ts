@@ -46,7 +46,15 @@ export function analyze(
   routeType: SupportedRouteType,
   lastUpdated: Date,
 ): VehicleAnalysisResult {
-  const matching = vehicles.filter((vehicle) => vehicle.trip.gtfs.route_type === routeType);
+  // Cross-filter by route_id membership: `/vehiclepositions` returns every
+  // PID vehicle regardless of operator, so we drop anything whose route isn't
+  // in the already-DPP-filtered routes list. Without this, buses from Arriva
+  // / ČSAD would inflate the counts.
+  const routeIds = new Set(routes.map((route) => route.route_id));
+  const matching = vehicles.filter(
+    (vehicle) =>
+      vehicle.trip.gtfs.route_type === routeType && routeIds.has(vehicle.trip.gtfs.route_id),
+  );
 
   const vehiclesByRoute = new Map<string, VehiclePosition[]>();
   for (const vehicle of matching) {
