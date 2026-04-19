@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm check-types)",
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm test:*)"
+    ]
+  }
+}
