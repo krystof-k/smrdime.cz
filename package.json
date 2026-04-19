@@ -1,0 +1,54 @@
+{
+  "name": "smrdime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Živý přehled, kolik pražských tramvají zrovna jezdí bez klimatizace.",
+  "author": "Kryštof Korb",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "check-types": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "test": "node --test 'src/__tests__/*.test.ts'",
+    "test:watch": "node --test --watch 'src/__tests__/*.test.ts'",
+    "test:e2e": "playwright test",
+    "worker:build": "opennextjs-cloudflare build",
+    "worker:dev": "pnpm run worker:build && opennextjs-cloudflare preview",
+    "worker:deploy": "pnpm run worker:build && opennextjs-cloudflare deploy",
+    "worker:upload": "pnpm run worker:build && opennextjs-cloudflare upload"
+  },
+  "dependencies": {
+    "geist": "^1.7.0",
+    "next": "^16.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.12",
+    "@opennextjs/cloudflare": "^1.19.1",
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.83.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "workerd"
+    ]
+  }
+}
