@@ -56,6 +56,12 @@ async function makeRequest<T>(endpoint: string): Promise<T> {
 // then reuses the list for subsequent /api/tram calls.
 const ROUTES_CACHE_TTL_MS = 30 * 60_000;
 
+// When a refresh fails, keep serving the last successful list and retry after a
+// short delay instead of hammering Golemio on every request. Route metadata is
+// stable enough that month-stale data is still correct; we'd much rather ship
+// that than blank the homepage on a transient catalog outage.
+const ROUTES_STALE_RETRY_MS = 30_000;
+
 /**
  * Builds a self-contained `getTramRoutes` with its own in-memory cache. The
  * default export below is the production instance; tests construct their own
@@ -63,6 +69,7 @@ const ROUTES_CACHE_TTL_MS = 30 * 60_000;
  */
 export function createTramRoutesLoader(
   ttlMs: number = ROUTES_CACHE_TTL_MS,
+  staleRetryMs: number = ROUTES_STALE_RETRY_MS,
 ): () => Promise<Route[]> {
   let cached: { data: Route[]; expiresAt: number } | null = null;
 
@@ -70,10 +77,18 @@ export function createTramRoutesLoader(
     const now = Date.now();
     if (cached && cached.expiresAt > now) return cached.data;
 
-    const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
-    const trams = routes.filter((route) => route.route_type === 0);
-    cached = { data: trams, expiresAt: now + ttlMs };
-    return trams;
+    try {
+      const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
+      const trams = routes.filter((route) => route.route_type === 0);
+      cached = { data: trams, expiresAt: now + ttlMs };
+      return trams;
+    } catch (err) {
+      if (cached) {
+        cached = { data: cached.data, expiresAt: now + staleRetryMs };
+        return cached.data;
+      }
+      throw err;
+    }
   };
 }
 
