@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/*
+ * Dark mode triggers on either:
+ *   - system preference (default for the live site)
+ *   - a `[data-theme="dark"]` ancestor (manual override, used by /debug)
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    @slot;
+  }
+  &:where([data-theme="dark"] *, [data-theme="dark"]) {
+    @slot;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes clock-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.clock-blink {
+  animation: clock-blink 1s steps(2, start) infinite;
+}
+
+/*
+ * DPP info popover — uses the native Popover API for Escape / outside-click
+ * dismissal. When open, the element enters the top layer and the UA stylesheet
+ * applies `position: fixed; inset: 0; margin: auto; border; padding` — we
+ * neutralize all of that here and let JS pin `right` / `bottom` to the
+ * trigger's bounding rect.
+ */
+.dpp-popover[popover] {
+  position: fixed;
+  top: auto;
+  left: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
