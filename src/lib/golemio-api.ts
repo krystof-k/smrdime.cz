@@ -15,22 +15,16 @@ export const ROUTE_TYPE_TRAM = 0;
 export const ROUTE_TYPE_BUS = 3;
 export type SupportedRouteType = typeof ROUTE_TYPE_TRAM | typeof ROUTE_TYPE_BUS;
 
-/**
- * Prague's PID GTFS is multi-operator: DPP (urban metro/tram/bus) shares the
- * feed with regional carriers like Arriva and ČSAD. We filter to DPP-only via
- * the PID-assigned agency_id "99" (confirmed in the Golemio OpenAPI schema
- * example for metro line A, route_id "L991"). Keeping this central so the
- * tram loader benefits from the same check even though all Prague trams are
- * DPP today.
- */
-export const DPP_AGENCY_ID = "99";
-
 export interface Route {
   route_id: string;
   route_short_name: string;
   route_long_name: string;
   route_type: number;
   route_color: string;
+  // PID publishes every integrated route under one umbrella agency_id (per
+  // pid.cz/o-systemu/opendata/, the per-route operator lives in a non-standard
+  // route_sub_agencies.txt that Golemio does not expose). Don't use this to
+  // filter operators — it doesn't.
   agency_id: string;
   is_regional: boolean;
 }
@@ -89,16 +83,24 @@ export function createRoutesLoader(
     if (cached && cached.expiresAt > now) return cached.data;
 
     const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
+    // Two filters narrow PID's multi-operator feed down to DPP's regular
+    // Prague fleet (the denominator behind AC_FLEET_TOTAL / AC_FLEET_BUS_TOTAL).
+    //
+    // 1. is_regional — per pid.cz/o-systemu/opendata/, this flags
+    //    "linka příměstské nebo regionální dopravy". Drops 300–899 suburban,
+    //    951–960 night suburban, 2000-series trains, MHD Příbram 501+, etc.
+    //
+    // 2. /^X?\d+$/ — keep numeric line numbers (1, 22, 136, 907) and X-prefix
+    //    tram-substitute buses (X25, X94 — DPP buses replacing closed trams,
+    //    drawn from the regular fleet). Drops:
+    //      - "MHD N" — Říčany / Kolín / Benešov urban transit (not DPP)
+    //      - "IKEA" — DPP shuttle to Černý Most, outside regular fleet
+    //      - "AE", "K", "BB1", "BB2" — DPP microtransit, outside regular fleet
     const filtered = routes.filter(
       (route) =>
         route.route_type === routeType &&
-        route.agency_id === DPP_AGENCY_ID &&
-        // DPP also runs services that pass the agency filter but aren't part
-        // of the regular numbered fleet our denominators describe — substitute
-        // transport ("MHD 3", "MHD 7" when a tram line is closed) and one-off
-        // shuttles ("IKEA"). Their route_short_name is non-numeric; keep only
-        // numeric line numbers (1, 22, 136, 907, …).
-        /^\d+$/.test(route.route_short_name),
+        !route.is_regional &&
+        /^X?\d+$/.test(route.route_short_name),
     );
     cached = { data: filtered, expiresAt: now + ttlMs };
     return filtered;

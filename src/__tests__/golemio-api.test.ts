@@ -89,19 +89,22 @@ describe("tram routes loader", () => {
     assert.equal(headers.Accept, "application/json");
   });
 
-  it("filters out non-tram routes (route_type !== 0)", async () => {
+  it("filters out non-tram routes (route_type !== 0) and applies the same DPP filter", async () => {
     queueJson([
       routeOfType("1", ROUTE_TYPE_TRAM),
       routeOfType("B", 1),
       routeOfType("100", ROUTE_TYPE_BUS),
       routeOfType("22", ROUTE_TYPE_TRAM),
+      // Symmetric edge case: if PID ever exposes a substitute tram with an
+      // X-prefix short name, it's a real DPP service and must be kept.
+      { ...routeOfType("X22", ROUTE_TYPE_TRAM), route_short_name: "X22" },
     ]);
 
     const loader = createRoutesLoader(ROUTE_TYPE_TRAM);
     const routes = await loader();
     assert.deepEqual(
       routes.map((r) => r.route_id),
-      ["1", "22"],
+      ["1", "22", "X22"],
     );
   });
 
@@ -187,36 +190,33 @@ describe("bus routes loader", () => {
     );
   });
 
-  it("filters out non-DPP bus routes (agency_id !== '99')", async () => {
+  it("narrows PID's multi-operator feed to DPP's regular Prague bus fleet", async () => {
+    // One fixture covers every category we researched against pid.cz docs.
+    // Comments record why each row is in or out so future readers can verify.
     queueJson([
-      routeOfType("100", ROUTE_TYPE_BUS), // DPP
-      routeOfType("381", ROUTE_TYPE_BUS, { agency_id: "11", is_regional: true }), // regional
-      routeOfType("950", ROUTE_TYPE_BUS, { agency_id: "42", is_regional: false }), // non-DPP urban
-      routeOfType("200", ROUTE_TYPE_BUS), // DPP
-    ]);
-
-    const loader = createRoutesLoader(ROUTE_TYPE_BUS);
-    const routes = await loader();
-    assert.deepEqual(
-      routes.map((r) => r.route_id),
-      ["100", "200"],
-    );
-  });
-
-  it("filters out DPP routes with non-numeric short names (MHD substitute, IKEA shuttle)", async () => {
-    queueJson([
+      // Kept: regular DPP day / school / night bus lines
       routeOfType("100", ROUTE_TYPE_BUS),
+      routeOfType("136", ROUTE_TYPE_BUS),
+      routeOfType("907", ROUTE_TYPE_BUS),
+      // Kept: tram-substitute bus drawn from DPP regular fleet
+      { ...routeOfType("X25", ROUTE_TYPE_BUS), route_short_name: "X25" },
+      // Dropped (non-numeric short name): DPP shuttles outside regular fleet
+      { ...routeOfType("IKEA", ROUTE_TYPE_BUS), route_short_name: "IKEA" },
+      { ...routeOfType("AE", ROUTE_TYPE_BUS), route_short_name: "AE" },
+      { ...routeOfType("BB1", ROUTE_TYPE_BUS), route_short_name: "BB1" },
+      // Dropped (non-numeric short name): other towns' urban transit
       { ...routeOfType("MHD3", ROUTE_TYPE_BUS), route_short_name: "MHD 3" },
       { ...routeOfType("MHD7", ROUTE_TYPE_BUS), route_short_name: "MHD 7" },
-      { ...routeOfType("IKEA", ROUTE_TYPE_BUS), route_short_name: "IKEA" },
-      routeOfType("136", ROUTE_TYPE_BUS),
+      // Dropped (is_regional=true): suburban / regional carriers
+      routeOfType("381", ROUTE_TYPE_BUS, { is_regional: true }),
+      routeOfType("501", ROUTE_TYPE_BUS, { is_regional: true }), // MHD Příbram
     ]);
 
     const loader = createRoutesLoader(ROUTE_TYPE_BUS);
     const routes = await loader();
     assert.deepEqual(
       routes.map((r) => r.route_short_name),
-      ["100", "136"],
+      ["100", "136", "907", "X25"],
     );
   });
 
