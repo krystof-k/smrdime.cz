@@ -90,7 +90,15 @@ export function createRoutesLoader(
 
     const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
     const filtered = routes.filter(
-      (route) => route.route_type === routeType && route.agency_id === DPP_AGENCY_ID,
+      (route) =>
+        route.route_type === routeType &&
+        route.agency_id === DPP_AGENCY_ID &&
+        // DPP also runs services that pass the agency filter but aren't part
+        // of the regular numbered fleet our denominators describe — substitute
+        // transport ("MHD 3", "MHD 7" when a tram line is closed) and one-off
+        // shuttles ("IKEA"). Their route_short_name is non-numeric; keep only
+        // numeric line numbers (1, 22, 136, 907, …).
+        /^\d+$/.test(route.route_short_name),
     );
     cached = { data: filtered, expiresAt: now + ttlMs };
     return filtered;

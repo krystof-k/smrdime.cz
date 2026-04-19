@@ -203,6 +203,23 @@ describe("bus routes loader", () => {
     );
   });
 
+  it("filters out DPP routes with non-numeric short names (MHD substitute, IKEA shuttle)", async () => {
+    queueJson([
+      routeOfType("100", ROUTE_TYPE_BUS),
+      { ...routeOfType("MHD3", ROUTE_TYPE_BUS), route_short_name: "MHD 3" },
+      { ...routeOfType("MHD7", ROUTE_TYPE_BUS), route_short_name: "MHD 7" },
+      { ...routeOfType("IKEA", ROUTE_TYPE_BUS), route_short_name: "IKEA" },
+      routeOfType("136", ROUTE_TYPE_BUS),
+    ]);
+
+    const loader = createRoutesLoader(ROUTE_TYPE_BUS);
+    const routes = await loader();
+    assert.deepEqual(
+      routes.map((r) => r.route_short_name),
+      ["100", "136"],
+    );
+  });
+
   it("keeps its own cache separate from the tram loader", async () => {
     queueJson([routeOfType("1", ROUTE_TYPE_TRAM)]);
     queueJson([routeOfType("100", ROUTE_TYPE_BUS)]);
