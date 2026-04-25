@@ -49,7 +49,7 @@ export function Footer() {
           Open-Meteo
         </FooterLink>
         . Zapojte se na{" "}
-        <FooterLink href="https://github.com/krystof-k" hoverColor={HOVER.github}>
+        <FooterLink href="https://github.com/krystof-k/smrdime-cz" hoverColor={HOVER.github}>
           GitHubu
         </FooterLink>
         .
