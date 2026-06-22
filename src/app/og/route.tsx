@@ -1,4 +1,4 @@
-import { COOL_CUTOFF_C } from "@/lib/display";
+import { COOL_CUTOFF_C, getTemperatureEmoji } from "@/lib/display";
 import { analyzeTramACStatus } from "@/lib/tram-analysis";
 
 // workers-og pulls in Satori/resvg WASM that only links in the Cloudflare
@@ -85,7 +85,9 @@ export async function GET() {
   const gradient = gradientFor(temperature);
 
   const eyebrow =
-    temperature !== null ? `V Praze je teď ${temperature} °C` : "Pražské tramvaje v reálném čase";
+    temperature !== null
+      ? `V Praze je teď ${temperature} °C ${getTemperatureEmoji(temperature)}`
+      : "Pražské tramvaje v reálném čase";
 
   const footer = total > 0 ? `smrdíme.cz · z ${total} tramvají v provozu` : "smrdíme.cz";
 
@@ -117,7 +119,7 @@ export async function GET() {
         >
           <span style={{ fontSize: 280 }}>{count}</span>
           <span style={{ fontSize: 72, marginLeft: 28, fontFamily: "Geist", fontWeight: 900 }}>
-            tramvají
+            tramvají 🚋
           </span>
         </div>
         <div style={{ display: "flex", fontSize: 64, fontWeight: 900, marginTop: 8 }}>
@@ -131,6 +133,10 @@ export async function GET() {
       width: WIDTH,
       height: HEIGHT,
       fonts,
+      // Satori can't draw emoji from a font; this fetches Twemoji SVGs per
+      // glyph from a CDN at render time. The route is edge-cached, so the
+      // fetch happens rarely.
+      emoji: "twemoji",
       headers: { "Cache-Control": CACHE_CONTROL },
     },
   );
