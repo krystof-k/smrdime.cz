@@ -7,6 +7,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // workers-og ships prebuilt .wasm (Satori/resvg) that Next's bundler can't
+  // parse. Keep it external so the Cloudflare worker bundler links the WASM at
+  // runtime instead. The OG route only runs on the worker, never in `next dev`.
+  serverExternalPackages: ["workers-og"],
   async headers() {
     return [
       {

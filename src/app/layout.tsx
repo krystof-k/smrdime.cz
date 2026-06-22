@@ -6,7 +6,15 @@ import "./globals.css";
 const TITLE = "Smrdíme? Kolik pražských tramvají jede bez klimatizace";
 const DESCRIPTION = "Živý přehled, kolik pražských tramvají zrovna jezdí bez klimatizace.";
 
+const OG_IMAGE = {
+  url: "/og",
+  width: 1200,
+  height: 630,
+  alt: TITLE,
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://smrdime.cz"),
   title: TITLE,
   description: DESCRIPTION,
   openGraph: {
@@ -14,11 +22,13 @@ export const metadata: Metadata = {
     locale: "cs_CZ",
     title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 
