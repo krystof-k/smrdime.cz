@@ -21,23 +21,52 @@ export const COOL_CUTOFF_C = 22;
 export type TemperatureTier = {
   minTemp: number;
   textColor: string;
+  // Light-mode hex of `textColor`, for renderers that can't read Tailwind
+  // classes (the OG image runs through Satori). Kept beside textColor so the
+  // two can't drift.
+  hex: string;
   emoji: string;
   maxSeverity?: number;
 };
 
 export const TEMPERATURE_TIERS: TemperatureTier[] = [
-  { minTemp: 35, textColor: "text-red-600 dark:text-red-400", emoji: "🔥💀", maxSeverity: 5 },
-  { minTemp: 30, textColor: "text-orange-500 dark:text-orange-400", emoji: "🌡️😭", maxSeverity: 4 },
-  { minTemp: 25, textColor: "text-yellow-500 dark:text-yellow-300", emoji: "☀️😩", maxSeverity: 3 },
-  { minTemp: 22, textColor: "text-green-500 dark:text-green-400", emoji: "🌤️😒", maxSeverity: 2 },
-  { minTemp: 20, textColor: "text-green-500 dark:text-green-400", emoji: "🌤️😒" },
-  { minTemp: 15, textColor: "text-blue-500 dark:text-blue-400", emoji: "☁️🙄" },
-  { minTemp: 10, textColor: "text-indigo-500 dark:text-indigo-400", emoji: "🌬️😤" },
-  { minTemp: 5, textColor: "text-purple-500 dark:text-purple-400", emoji: "❄️😠" },
-  { minTemp: 0, textColor: "text-blue-700 dark:text-blue-300", emoji: "🧊🤬" },
+  {
+    minTemp: 35,
+    textColor: "text-red-600 dark:text-red-400",
+    hex: "#dc2626",
+    emoji: "🔥💀",
+    maxSeverity: 5,
+  },
+  {
+    minTemp: 30,
+    textColor: "text-orange-500 dark:text-orange-400",
+    hex: "#f97316",
+    emoji: "🌡️😭",
+    maxSeverity: 4,
+  },
+  {
+    minTemp: 25,
+    textColor: "text-yellow-500 dark:text-yellow-300",
+    hex: "#eab308",
+    emoji: "☀️😩",
+    maxSeverity: 3,
+  },
+  {
+    minTemp: 22,
+    textColor: "text-green-500 dark:text-green-400",
+    hex: "#22c55e",
+    emoji: "🌤️😒",
+    maxSeverity: 2,
+  },
+  { minTemp: 20, textColor: "text-green-500 dark:text-green-400", hex: "#22c55e", emoji: "🌤️😒" },
+  { minTemp: 15, textColor: "text-blue-500 dark:text-blue-400", hex: "#3b82f6", emoji: "☁️🙄" },
+  { minTemp: 10, textColor: "text-indigo-500 dark:text-indigo-400", hex: "#6366f1", emoji: "🌬️😤" },
+  { minTemp: 5, textColor: "text-purple-500 dark:text-purple-400", hex: "#a855f7", emoji: "❄️😠" },
+  { minTemp: 0, textColor: "text-blue-700 dark:text-blue-300", hex: "#1d4ed8", emoji: "🧊🤬" },
   {
     minTemp: Number.NEGATIVE_INFINITY,
     textColor: "text-blue-900 dark:text-blue-200",
+    hex: "#1e3a8a",
     emoji: "💀🖕",
   },
 ];
@@ -55,8 +84,15 @@ function tierFor(temp: number): TemperatureTier {
  */
 export const NEUTRAL_TEXT_COLOR = "text-gray-500 dark:text-gray-400";
 
+// Light-mode hex of NEUTRAL_TEXT_COLOR (gray-500), for the OG renderer.
+export const NEUTRAL_HEX = "#6b7280";
+
 export function getTemperatureColor(temp: number): string {
   return tierFor(temp).textColor;
+}
+
+export function getTemperatureHex(temp: number): string {
+  return tierFor(temp).hex;
 }
 
 export function getTemperatureEmoji(temp: number): string {

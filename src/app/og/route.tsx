@@ -1,4 +1,5 @@
-import { COOL_CUTOFF_C, getTemperatureEmoji } from "@/lib/display";
+import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
+import { OG_EMOJI } from "@/lib/og-emoji";
 import { analyzeTramACStatus } from "@/lib/tram-analysis";
 
 // workers-og pulls in Satori/resvg WASM that only links in the Cloudflare
@@ -19,12 +20,17 @@ const HEIGHT = 630;
 // fresh-ish snapshot rather than a live ticker.
 const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300, stale-if-error=600";
 
-type Font = {
-  name: string;
-  data: ArrayBuffer;
-  weight: 400 | 700 | 900;
-  style: "normal";
-};
+// Homepage palette (light theme): the page background gradient and headline
+// text color, so the card reads as a screenshot of the live site.
+const BG = "linear-gradient(to bottom right, #f8fafc, #eff6ff, #eef2ff)";
+const TEXT = "#1f2937"; // gray-800
+const FONT_SIZE = 78;
+const EMOJI_SIZE = 70;
+// Satori trims leading/trailing whitespace inside flex items, so inter-word
+// spaces vanish. Space the inline units with an explicit margin instead.
+const SPACE = 20;
+
+type Font = { name: string; data: ArrayBuffer; weight: 100 | 400 | 700 | 900; style: "normal" };
 
 // Geist lives on Google Fonts; loadGoogleFont returns a Satori-ready buffer.
 // Cache the fetch per isolate — the fonts never change and each fetch is a
@@ -34,26 +40,18 @@ let fontsPromise: Promise<Font[]> | null = null;
 function loadFonts(loadGoogleFont: WorkersOg["loadGoogleFont"]): Promise<Font[]> {
   if (!fontsPromise) {
     fontsPromise = Promise.all([
+      loadGoogleFont({ family: "Geist", weight: 100 }),
       loadGoogleFont({ family: "Geist", weight: 400 }),
       loadGoogleFont({ family: "Geist", weight: 900 }),
       loadGoogleFont({ family: "Geist Mono", weight: 700 }),
-    ]).then(([sans, sansBlack, mono]) => [
-      { name: "Geist", data: sans, weight: 400, style: "normal" },
-      { name: "Geist", data: sansBlack, weight: 900, style: "normal" },
+    ]).then(([thin, regular, black, mono]) => [
+      { name: "Geist", data: thin, weight: 100, style: "normal" },
+      { name: "Geist", data: regular, weight: 400, style: "normal" },
+      { name: "Geist", data: black, weight: 900, style: "normal" },
       { name: "Geist Mono", data: mono, weight: 700, style: "normal" },
     ]);
   }
   return fontsPromise;
-}
-
-// Below the AC cutoff the site drops the "it's hot, we stink" framing, so the
-// card cools its palette to match. Reuses the one threshold to avoid drift.
-const WARM = { from: "#f97316", to: "#dc2626" };
-const COOL = { from: "#2563eb", to: "#4338ca" };
-
-function gradientFor(temperature: number | null) {
-  if (temperature !== null && temperature < COOL_CUTOFF_C) return COOL;
-  return WARM;
 }
 
 async function fetchTemperature(): Promise<number | null> {
@@ -71,6 +69,47 @@ async function fetchTemperature(): Promise<number | null> {
   }
 }
 
+// Mirrors TramHeadline's weight/color mix so the card reads like the homepage.
+// Each unit carries a trailing space as a margin (see SPACE).
+function word(text: string, weight: 100 | 400 | 900, color?: string, mono?: boolean) {
+  return (
+    <span
+      style={{
+        fontWeight: weight,
+        fontFamily: mono ? "Geist Mono" : "Geist",
+        color,
+        marginRight: SPACE,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+// An emoji string (often a pair like "🌤️😒") becomes self-hosted Apple PNGs:
+// tight within the group, a normal word space after it. Unknown graphemes are
+// skipped rather than rendered as tofu.
+function emoji(str: string) {
+  const segments = [...segmenter.segment(str)].map((s) => s.segment).filter((s) => OG_EMOJI[s]);
+  const lastIdx = segments.length - 1;
+  return segments.map((segment, idx) => {
+    const key = `${segment}-${idx}`;
+    return (
+      // biome-ignore lint/a11y/useAltText: Satori renders to a raster, no a11y tree.
+      // biome-ignore lint/performance/noImgElement: not the DOM — this is Satori JSX.
+      <img
+        key={key}
+        src={OG_EMOJI[segment]}
+        width={EMOJI_SIZE}
+        height={EMOJI_SIZE}
+        style={{ marginRight: idx === lastIdx ? SPACE : 3, marginBottom: -10 }}
+      />
+    );
+  });
+}
+
 export async function GET() {
   const { ImageResponse, loadGoogleFont } = await import("workers-og");
 
@@ -81,62 +120,76 @@ export async function GET() {
   ]);
 
   const count = analysis?.tramsWithoutAC ?? 0;
-  const total = analysis?.totalTrams ?? 0;
-  const gradient = gradientFor(temperature);
+  const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
 
-  const eyebrow =
+  const headline =
     temperature !== null
-      ? `V Praze je teď ${temperature} °C ${getTemperatureEmoji(temperature)}`
-      : "Pražské tramvaje v reálném čase";
-
-  const footer = total > 0 ? `smrdíme.cz · z ${total} tramvají v provozu` : "smrdíme.cz";
+      ? [
+          word("V", 400),
+          word("Praze", 900),
+          word("je", 100),
+          word(`${temperature}°C`, 900, accent, true),
+          ...emoji(getTemperatureEmoji(temperature)),
+          word("a jezdí", 100),
+          word(`${count}`, 900, accent, true),
+          word("tramvají", 100),
+          ...emoji("🚋"),
+          word("bez klimatizace.", 900),
+        ]
+      : [
+          word("V", 400),
+          word("Praze", 900),
+          word("jezdí", 100),
+          word(`${count}`, 900, accent, true),
+          word("tramvají", 100),
+          ...emoji("🚋"),
+          word("bez klimatizace.", 900),
+        ];
 
   return new ImageResponse(
     <div
       style={{
+        position: "relative",
         width: "100%",
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "72px 80px",
-        backgroundImage: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
-        color: "#ffffff",
+        justifyContent: "center",
+        padding: "64px 72px",
+        backgroundImage: BG,
+        color: TEXT,
         fontFamily: "Geist",
       }}
     >
-      <div style={{ display: "flex", fontSize: 36, fontWeight: 400, opacity: 0.85 }}>{eyebrow}</div>
-
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            fontFamily: "Geist Mono",
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          <span style={{ fontSize: 280 }}>{count}</span>
-          <span style={{ fontSize: 72, marginLeft: 28, fontFamily: "Geist", fontWeight: 900 }}>
-            tramvají 🚋
-          </span>
-        </div>
-        <div style={{ display: "flex", fontSize: 64, fontWeight: 900, marginTop: 8 }}>
-          jezdí v Praze bez klimatizace
-        </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "baseline",
+          fontSize: FONT_SIZE,
+          lineHeight: 1.2,
+        }}
+      >
+        {headline}
       </div>
-
-      <div style={{ display: "flex", fontSize: 30, fontWeight: 400, opacity: 0.85 }}>{footer}</div>
+      <div
+        style={{
+          position: "absolute",
+          left: 72,
+          bottom: 48,
+          display: "flex",
+          fontSize: 28,
+          fontWeight: 400,
+          color: "#9ca3af",
+        }}
+      >
+        smrdíme.cz
+      </div>
     </div>,
     {
       width: WIDTH,
       height: HEIGHT,
       fonts,
-      // Satori can't draw emoji from a font; this fetches Twemoji SVGs per
-      // glyph from a CDN at render time. The route is edge-cached, so the
-      // fetch happens rarely.
-      emoji: "twemoji",
       headers: { "Cache-Control": CACHE_CONTROL },
     },
   );
