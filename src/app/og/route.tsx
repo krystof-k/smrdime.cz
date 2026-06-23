@@ -130,6 +130,8 @@ export async function GET() {
           word("je", 100),
           word(`${temperature}°C`, 900, accent, true),
           ...emoji(getTemperatureEmoji(temperature)),
+          // Full-width flex item forces a wrap, mirroring TramHeadline's <br/>.
+          <div key="br" style={{ width: "100%" }} />,
           word("a jezdí", 100),
           word(`${count}`, 900, accent, true),
           word("tramvají", 100),
