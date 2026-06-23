@@ -162,6 +162,7 @@ export async function GET() {
           word(`${count}`, 900, accent, true),
           word("tramvají", 100),
           ...emoji("🚋"),
+          <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),
         ]
       : [
@@ -171,6 +172,7 @@ export async function GET() {
           word(`${count}`, 900, accent, true),
           word("tramvají", 100),
           ...emoji("🚋"),
+          <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),
         ];
 
