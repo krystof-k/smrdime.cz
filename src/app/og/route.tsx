@@ -217,11 +217,11 @@ export async function GET() {
           bottom: PAD_Y,
           display: "flex",
           fontSize: 44 * SCALE,
-          fontWeight: 700,
+          fontWeight: 400,
           color: TEXT,
         }}
       >
-        smrdíme.cz
+        smrdime.cz
       </div>
     </div>,
     {
