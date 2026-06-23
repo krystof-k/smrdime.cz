@@ -60,18 +60,21 @@ function loadFonts(loadGoogleFont: WorkersOg["loadGoogleFont"]): Promise<Font[]>
     fontsPromise = Promise.all([
       loadGoogleFont({ family: "Geist", weight: 100 }),
       loadGoogleFont({ family: "Geist", weight: 400 }),
-      loadGoogleFont({ family: "Geist", weight: 700 }),
       loadGoogleFont({ family: "Geist", weight: 900 }),
       loadGoogleFont({ family: "Geist Mono", weight: 400 }),
       loadGoogleFont({ family: "Geist Mono", weight: 900 }),
-    ]).then(([thin, regular, bold, black, mono, monoBlack]) => [
+    ]).then(([thin, regular, black, mono, monoBlack]) => [
       { name: "Geist", data: thin, weight: 100, style: "normal" },
       { name: "Geist", data: regular, weight: 400, style: "normal" },
-      { name: "Geist", data: bold, weight: 700, style: "normal" },
       { name: "Geist", data: black, weight: 900, style: "normal" },
       { name: "Geist Mono", data: mono, weight: 400, style: "normal" },
       { name: "Geist Mono", data: monoBlack, weight: 900, style: "normal" },
     ]);
+    // Don't cache a rejection — a transient font-fetch failure would otherwise
+    // wedge every later render in this isolate. Reset so the next request retries.
+    fontsPromise.catch(() => {
+      fontsPromise = null;
+    });
   }
   return fontsPromise;
 }
@@ -124,8 +127,9 @@ function emoji(str: string) {
         width={EMOJI_SIZE}
         height={EMOJI_SIZE}
         // alignSelf centers the glyph on the line box instead of sitting it on
-        // the text baseline; trailing margin is a word space after the group.
-        style={{ alignSelf: "center", marginRight: idx === lastIdx ? SPACE : 6 }}
+        // the text baseline; trailing margin is a word space after the group,
+        // tight (3px logical) within it.
+        style={{ alignSelf: "center", marginRight: idx === lastIdx ? SPACE : 3 * SCALE }}
       />
     );
   });

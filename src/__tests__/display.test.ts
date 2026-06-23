@@ -77,15 +77,15 @@ describe("getTemperatureEmoji", () => {
 // against the hex drifting away from its class.
 describe("getTemperatureHex", () => {
   it("returns the hottest tier's hex for extreme heat", () => {
-    assert.equal(getTemperatureHex(40), "#dc2626");
+    assert.equal(getTemperatureHex(40), "#e7000b");
   });
   it("returns the coldest tier's hex for sub-zero", () => {
-    assert.equal(getTemperatureHex(-10), "#1e3a8a");
+    assert.equal(getTemperatureHex(-10), "#1c398e");
   });
   it("snaps to the tier at the boundary", () => {
-    assert.equal(getTemperatureHex(35), "#dc2626");
-    assert.equal(getTemperatureHex(34), "#f97316");
-    assert.equal(getTemperatureHex(22), "#22c55e");
+    assert.equal(getTemperatureHex(35), "#e7000b");
+    assert.equal(getTemperatureHex(34), "#ff6900");
+    assert.equal(getTemperatureHex(22), "#00c950");
   });
   it("differs from the neutral fallback for any known temperature", () => {
     assert.notEqual(getTemperatureHex(20), NEUTRAL_HEX);
