@@ -1,3 +1,4 @@
+import { WEATHER_API_URL } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { OG_EMOJI } from "@/lib/og-emoji";
 import { analyzeTramACStatus } from "@/lib/tram-analysis";
@@ -52,13 +53,17 @@ function loadFonts(loadGoogleFont: WorkersOg["loadGoogleFont"]): Promise<Font[]>
     fontsPromise = Promise.all([
       loadGoogleFont({ family: "Geist", weight: 100 }),
       loadGoogleFont({ family: "Geist", weight: 400 }),
+      loadGoogleFont({ family: "Geist", weight: 700 }),
       loadGoogleFont({ family: "Geist", weight: 900 }),
-      loadGoogleFont({ family: "Geist Mono", weight: 700 }),
-    ]).then(([thin, regular, black, mono]) => [
+      loadGoogleFont({ family: "Geist Mono", weight: 400 }),
+      loadGoogleFont({ family: "Geist Mono", weight: 900 }),
+    ]).then(([thin, regular, bold, black, mono, monoBlack]) => [
       { name: "Geist", data: thin, weight: 100, style: "normal" },
       { name: "Geist", data: regular, weight: 400, style: "normal" },
+      { name: "Geist", data: bold, weight: 700, style: "normal" },
       { name: "Geist", data: black, weight: 900, style: "normal" },
-      { name: "Geist Mono", data: mono, weight: 700, style: "normal" },
+      { name: "Geist Mono", data: mono, weight: 400, style: "normal" },
+      { name: "Geist Mono", data: monoBlack, weight: 900, style: "normal" },
     ]);
   }
   return fontsPromise;
@@ -66,10 +71,7 @@ function loadFonts(loadGoogleFont: WorkersOg["loadGoogleFont"]): Promise<Font[]>
 
 async function fetchTemperature(): Promise<number | null> {
   try {
-    const res = await fetch(
-      "https://api.open-meteo.com/v1/forecast?latitude=50.0755&longitude=14.4378&current_weather=true",
-      { signal: AbortSignal.timeout(5000) },
-    );
+    const res = await fetch(WEATHER_API_URL, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     const payload = (await res.json()) as { current_weather?: { temperature?: number } };
     const temp = payload.current_weather?.temperature;
@@ -114,6 +116,8 @@ function emoji(str: string) {
         src={OG_EMOJI[segment]}
         width={EMOJI_SIZE}
         height={EMOJI_SIZE}
+        // marginBottom nudges the glyph down onto the text baseline; the
+        // trailing margin is a word space after the group, tight within it.
         style={{ marginRight: idx === lastIdx ? SPACE : 3, marginBottom: -10 }}
       />
     );
@@ -183,7 +187,7 @@ export async function GET() {
           fontFamily: "Geist Mono",
           fontSize: 26,
           fontWeight: 400,
-          color: "#9ca3af",
+          color: "#d1d5db",
         }}
       >
         {stamp}
@@ -206,7 +210,7 @@ export async function GET() {
           bottom: 48,
           display: "flex",
           fontSize: 44,
-          fontWeight: 900,
+          fontWeight: 700,
           color: TEXT,
         }}
       >

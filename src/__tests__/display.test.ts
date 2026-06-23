@@ -5,6 +5,8 @@ import {
   getACEmoji,
   getTemperatureColor,
   getTemperatureEmoji,
+  getTemperatureHex,
+  NEUTRAL_HEX,
   NEUTRAL_TEXT_COLOR,
 } from "../lib/display.ts";
 
@@ -67,5 +69,25 @@ describe("getTemperatureEmoji", () => {
     assert.equal(getTemperatureEmoji(40), "🔥💀");
     assert.equal(getTemperatureEmoji(25), "☀️😩");
     assert.equal(getTemperatureEmoji(0), "🧊🤬");
+  });
+});
+
+// getTemperatureHex feeds the OG renderer (Satori can't read Tailwind classes),
+// so it must stay in lock-step with the textColor tiers. These literals guard
+// against the hex drifting away from its class.
+describe("getTemperatureHex", () => {
+  it("returns the hottest tier's hex for extreme heat", () => {
+    assert.equal(getTemperatureHex(40), "#dc2626");
+  });
+  it("returns the coldest tier's hex for sub-zero", () => {
+    assert.equal(getTemperatureHex(-10), "#1e3a8a");
+  });
+  it("snaps to the tier at the boundary", () => {
+    assert.equal(getTemperatureHex(35), "#dc2626");
+    assert.equal(getTemperatureHex(34), "#f97316");
+    assert.equal(getTemperatureHex(22), "#22c55e");
+  });
+  it("differs from the neutral fallback for any known temperature", () => {
+    assert.notEqual(getTemperatureHex(20), NEUTRAL_HEX);
   });
 });
