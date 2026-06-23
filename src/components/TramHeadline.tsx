@@ -44,7 +44,8 @@ export function TramHeadline({ data, temperature, showPercentages }: TramHeadlin
           <SkeletonBlock />
         )}
       </span>{" "}
-      <span className="font-thin">tramvají</span> 🚋{" "}
+      <span className="font-thin">tramvají</span> 🚋
+      <br />
       <span className="font-black">bez klimatizace</span>.
     </h1>
   );
