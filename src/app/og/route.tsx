@@ -15,10 +15,20 @@ export const dynamic = "force-dynamic";
 const WIDTH = 1200;
 const HEIGHT = 630;
 
-// Mirror /api/tram: short edge cache, stale-while-revalidate so social crawlers
-// always get a fast response. They cache the result hard anyway, so this is a
-// fresh-ish snapshot rather than a live ticker.
-const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300, stale-if-error=600";
+// Match /api/tram's data cadence (~30s) so direct hits stay fresh while still
+// deduping the Golemio call behind the edge cache. The card also stamps its own
+// capture time, so a platform that caches the unfurl can't silently go stale.
+const CACHE_CONTROL = "public, s-maxage=30, stale-while-revalidate=60, stale-if-error=300";
+
+// Prague-local "23. 6. 2026 14:32", shown subtly top-right like the site clock.
+const STAMP_FORMAT = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "Europe/Prague",
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // Homepage palette (light theme): the page background gradient and headline
 // text color, so the card reads as a screenshot of the live site.
@@ -121,6 +131,7 @@ export async function GET() {
 
   const count = analysis?.tramsWithoutAC ?? 0;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
+  const stamp = STAMP_FORMAT.format(new Date());
 
   const headline =
     temperature !== null
@@ -165,6 +176,20 @@ export async function GET() {
     >
       <div
         style={{
+          position: "absolute",
+          top: 48,
+          right: 72,
+          display: "flex",
+          fontFamily: "Geist Mono",
+          fontSize: 26,
+          fontWeight: 400,
+          color: "#9ca3af",
+        }}
+      >
+        {stamp}
+      </div>
+      <div
+        style={{
           display: "flex",
           flexWrap: "wrap",
           alignItems: "baseline",
@@ -180,9 +205,9 @@ export async function GET() {
           left: 72,
           bottom: 48,
           display: "flex",
-          fontSize: 28,
-          fontWeight: 400,
-          color: "#9ca3af",
+          fontSize: 44,
+          fontWeight: 900,
+          color: TEXT,
         }}
       >
         smrdíme.cz
