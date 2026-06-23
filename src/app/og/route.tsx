@@ -202,7 +202,7 @@ export async function GET() {
       <div
         style={{
           position: "absolute",
-          left: 72,
+          right: 72,
           bottom: 48,
           display: "flex",
           fontSize: 44,
