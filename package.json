@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "check-types": "tsc --noEmit",
     "lint": "biome check",
     "lint:fix": "biome check --write",
@@ -29,7 +29,8 @@
     "geist": "^1.7.0",
     "next": "^16.2.4",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "workers-og": "^0.0.27"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
@@ -39,6 +40,7 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "emoji-datasource-apple": "^16.0.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3",
     "wrangler": "^4.83.0"
