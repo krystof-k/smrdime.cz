@@ -12,7 +12,8 @@ const DESCRIPTION = "Živý přehled, kolik pražských tramvají zrovna jezdí 
 // dynamically (see `dynamic` in page.tsx), otherwise the bucket freezes at build.
 export function generateMetadata(): Metadata {
   const bucket = Math.floor(Date.now() / 30_000);
-  const image = { url: `/og?t=${bucket}`, width: 1200, height: 630, alt: TITLE };
+  // Dimensions match the 2x-supersampled /og output (1200x630 logical).
+  const image = { url: `/og?t=${bucket}`, width: 2400, height: 1260, alt: TITLE };
   return {
     metadataBase: new URL("https://smrdime.cz"),
     title: TITLE,

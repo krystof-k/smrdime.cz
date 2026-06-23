@@ -13,8 +13,12 @@ type WorkersOg = typeof import("workers-og");
 // must never be prerendered at build (no network / no GOLEMIO_API_KEY there).
 export const dynamic = "force-dynamic";
 
-const WIDTH = 1200;
-const HEIGHT = 630;
+// Render at 2x and let platforms downscale. Satori/resvg has no browser-grade
+// hinting or subpixel AA, so supersampling is what keeps Geist's thin strokes
+// crisp instead of fattened at 1200px.
+const SCALE = 2;
+const WIDTH = 1200 * SCALE;
+const HEIGHT = 630 * SCALE;
 
 // Match /api/tram's data cadence (~30s) so direct hits stay fresh while still
 // deduping the Golemio call behind the edge cache. The card also stamps its own
@@ -35,11 +39,14 @@ const STAMP_FORMAT = new Intl.DateTimeFormat("cs-CZ", {
 // text color, so the card reads as a screenshot of the live site.
 const BG = "linear-gradient(to bottom right, #f8fafc, #eff6ff, #eef2ff)";
 const TEXT = "#1f2937"; // gray-800
-const FONT_SIZE = 78;
-const EMOJI_SIZE = 70;
+const FONT_SIZE = 78 * SCALE;
+const LINE_HEIGHT = 1.1;
+const EMOJI_SIZE = 68 * SCALE;
 // Satori trims leading/trailing whitespace inside flex items, so inter-word
 // spaces vanish. Space the inline units with an explicit margin instead.
-const SPACE = 20;
+const SPACE = 20 * SCALE;
+const PAD_Y = 64 * SCALE;
+const PAD_X = 72 * SCALE;
 
 type Font = { name: string; data: ArrayBuffer; weight: 100 | 400 | 700 | 900; style: "normal" };
 
@@ -116,9 +123,9 @@ function emoji(str: string) {
         src={OG_EMOJI[segment]}
         width={EMOJI_SIZE}
         height={EMOJI_SIZE}
-        // marginBottom nudges the glyph down onto the text baseline; the
-        // trailing margin is a word space after the group, tight within it.
-        style={{ marginRight: idx === lastIdx ? SPACE : 3, marginBottom: -10 }}
+        // alignSelf centers the glyph on the line box instead of sitting it on
+        // the text baseline; trailing margin is a word space after the group.
+        style={{ alignSelf: "center", marginRight: idx === lastIdx ? SPACE : 6 }}
       />
     );
   });
@@ -172,7 +179,7 @@ export async function GET() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        padding: "64px 72px",
+        padding: `${PAD_Y}px ${PAD_X}px`,
         backgroundImage: BG,
         color: TEXT,
         fontFamily: "Geist",
@@ -181,11 +188,11 @@ export async function GET() {
       <div
         style={{
           position: "absolute",
-          top: 48,
-          right: 72,
+          top: PAD_Y,
+          right: PAD_X,
           display: "flex",
           fontFamily: "Geist Mono",
-          fontSize: 26,
+          fontSize: 26 * SCALE,
           fontWeight: 400,
           color: "#d1d5db",
         }}
@@ -198,7 +205,7 @@ export async function GET() {
           flexWrap: "wrap",
           alignItems: "baseline",
           fontSize: FONT_SIZE,
-          lineHeight: 1.2,
+          lineHeight: LINE_HEIGHT,
         }}
       >
         {headline}
@@ -206,10 +213,10 @@ export async function GET() {
       <div
         style={{
           position: "absolute",
-          right: 72,
-          bottom: 48,
+          right: PAD_X,
+          bottom: PAD_Y,
           display: "flex",
-          fontSize: 44,
+          fontSize: 44 * SCALE,
           fontWeight: 700,
           color: TEXT,
         }}
