@@ -186,6 +186,10 @@ export async function GET() {
         flexDirection: "column",
         justifyContent: "center",
         padding: `${PAD_Y}px ${PAD_X}px`,
+        // Solid white under the gradient so the PNG is never transparent —
+        // Facebook (and others) composite the OG image on grey, which made the
+        // card look dark.
+        backgroundColor: "#ffffff",
         backgroundImage: BG,
         color: TEXT,
         fontFamily: "Geist",
