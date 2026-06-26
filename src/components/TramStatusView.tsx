@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { TramAnalysisResult } from "@/lib/tram-analysis";
 import { ErrorView } from "./ErrorView";
 import { Footer } from "./Footer";
+import { ShareButton } from "./ShareButton";
 import { TramHeadline } from "./TramHeadline";
 import { TramLineScroller } from "./TramLineScroller";
 import { TramSummary } from "./TramSummary";
@@ -73,6 +74,7 @@ export function TramStatusView({
                   temperature={temperature}
                   showPercentages={showPercentages}
                 />
+                <ShareButton />
               </div>
             </div>
             <TramLineScroller
