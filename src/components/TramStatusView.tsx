@@ -74,7 +74,7 @@ export function TramStatusView({
                   temperature={temperature}
                   showPercentages={showPercentages}
                 />
-                <ShareButton />
+                <ShareButton temperature={temperature} />
               </div>
             </div>
             <TramLineScroller

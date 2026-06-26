@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { buildShareUrl } from "@/lib/share";
 
 const SHARE_TITLE = "Smrdíme?";
 const SHARE_TEXT = "Kolik pražských tramvají právě jede bez klimatizace?";
 
-export function ShareButton() {
+export function ShareButton({ temperature }: { temperature: number | null }) {
   const [copied, setCopied] = useState(false);
+  // Tie the button to the live temperature accent, like the headline numbers.
+  const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
 
   async function handleShare() {
     // Fresh token per click so the shared link is a new URL the crawler hasn't
@@ -37,13 +40,14 @@ export function ShareButton() {
     <button
       type="button"
       onClick={handleShare}
-      className="mt-8 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 font-mono text-gray-600 text-sm transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+      style={{ color: accent, borderColor: accent }}
+      className="mt-8 inline-flex items-center gap-2 rounded-lg border-2 px-5 py-2.5 font-medium font-mono text-base transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
     >
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        width="16"
-        height="16"
+        width="18"
+        height="18"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
