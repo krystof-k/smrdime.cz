@@ -111,14 +111,14 @@ type ACLevel = {
 export const AC_LEVELS: ACLevel[] = [
   {
     minPercentage: 90,
-    emoji: "❄️",
+    emoji: "🧊",
     lightColor: "oklch(from rgb(37 99 235) calc(l + 0.4) c h)",
     darkColor: "oklch(from rgb(37 99 235) calc(l - 0.3) c h)",
     severity: 0,
   },
   {
     minPercentage: 75,
-    emoji: "🧊",
+    emoji: "❄️",
     lightColor: "oklch(from rgb(79 70 229) calc(l + 0.4) c h)",
     darkColor: "oklch(from rgb(79 70 229) calc(l - 0.25) c h)",
     severity: 1,
