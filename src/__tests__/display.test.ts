@@ -22,7 +22,7 @@ describe("getACEmoji", () => {
     assert.equal(getACEmoji(0, 40), "💀");
   });
   it("shows the best emoji at 90%+ AC coverage", () => {
-    assert.equal(getACEmoji(95, 30), "❄️");
+    assert.equal(getACEmoji(95, 30), "🧊");
   });
   it("does not flash red/💀 while temperature is unknown", () => {
     assert.notEqual(getACEmoji(0, null), "💀");
