@@ -94,13 +94,9 @@ export function createTramRoutesLoader(
 
 export const getTramRoutes = createTramRoutesLoader();
 
-export async function getVehiclePositions(routeId?: string): Promise<VehiclePosition[]> {
-  const endpoint = routeId
-    ? `/v2/vehiclepositions?routeId=${routeId}&limit=${VEHICLE_POSITIONS_LIMIT}`
-    : `/v2/vehiclepositions?limit=${VEHICLE_POSITIONS_LIMIT}`;
-
+export async function getVehiclePositions(): Promise<VehiclePosition[]> {
   const response = await makeRequest<{
     features: Array<{ properties: VehiclePosition }>;
-  }>(endpoint);
+  }>(`/v2/vehiclepositions?limit=${VEHICLE_POSITIONS_LIMIT}`);
   return response.features.map((feature) => feature.properties);
 }
