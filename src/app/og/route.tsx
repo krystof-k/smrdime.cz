@@ -25,6 +25,11 @@ const HEIGHT = 630 * SCALE;
 // capture time, so a platform that caches the unfurl can't silently go stale.
 const CACHE_CONTROL = "public, s-maxage=30, stale-while-revalidate=60, stale-if-error=300";
 
+// When tram data is unavailable, fail the render instead of claiming "0 trams
+// without AC" — platforms keep the previous unfurl on error, and stale-if-error
+// keeps serving the last good image from the edge cache.
+const ERROR_CACHE_CONTROL = "public, s-maxage=5";
+
 // Prague-local "23. 6. 2026 14:32", shown subtly top-right like the site clock.
 const STAMP_FORMAT = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
@@ -144,7 +149,14 @@ export async function GET() {
     loadFonts(loadGoogleFont),
   ]);
 
-  const count = analysis?.tramsWithoutAC ?? 0;
+  if (!analysis) {
+    return new Response("Failed to fetch tram status", {
+      status: 500,
+      headers: { "Cache-Control": ERROR_CACHE_CONTROL },
+    });
+  }
+
+  const count = analysis.tramsWithoutAC;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
   const stamp = STAMP_FORMAT.format(new Date());
 
