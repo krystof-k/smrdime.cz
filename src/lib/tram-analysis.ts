@@ -11,8 +11,6 @@ export interface TramLineInfo {
   totalVehicles: number;
   vehiclesWithAC: number;
   vehiclesWithoutAC: number;
-  status: "loading" | "completed" | "error";
-  error?: string;
 }
 
 export interface TramAnalysisResult {
@@ -60,7 +58,6 @@ export function analyze(
       totalVehicles: lineVehicles.length,
       vehiclesWithAC: withAC,
       vehiclesWithoutAC: withoutAC,
-      status: "completed",
     };
   });
 

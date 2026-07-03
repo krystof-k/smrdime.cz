@@ -213,16 +213,7 @@ describe("getVehiclePositions", () => {
     assert.equal(result[0].trip.air_conditioned, true);
   });
 
-  it("adds routeId filter when provided", async () => {
-    queueJson({ features: [] });
-    await getVehiclePositions("22");
-    assert.equal(
-      fetchCalls[0][0],
-      "https://api.golemio.cz/v2/vehiclepositions?routeId=22&limit=10000",
-    );
-  });
-
-  it("omits routeId when not provided", async () => {
+  it("requests all vehicle positions in a single call", async () => {
     queueJson({ features: [] });
     await getVehiclePositions();
     assert.equal(fetchCalls[0][0], "https://api.golemio.cz/v2/vehiclepositions?limit=10000");

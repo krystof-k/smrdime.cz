@@ -176,7 +176,6 @@ function generateLineDetails(
       totalVehicles: total,
       vehiclesWithAC: withAC,
       vehiclesWithoutAC: total - withAC,
-      status: "completed",
     });
 
     remainingTotal -= total;

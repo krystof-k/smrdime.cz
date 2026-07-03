@@ -12,7 +12,6 @@ const sampleTramStatus = {
       totalVehicles: 20,
       vehiclesWithAC: 5,
       vehiclesWithoutAC: 15,
-      status: "completed",
     },
     {
       lineNumber: "22",
@@ -20,7 +19,6 @@ const sampleTramStatus = {
       totalVehicles: 15,
       vehiclesWithAC: 12,
       vehiclesWithoutAC: 3,
-      status: "completed",
     },
   ],
 };
