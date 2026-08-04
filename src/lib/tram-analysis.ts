@@ -107,6 +107,14 @@ export function analyze(
   const tramVehicles = vehicles.filter((vehicle) => vehicle.trip.gtfs.route_type === 0);
   const trackedVehicles = tramVehicles.filter((vehicle) => vehicle.last_position.tracking);
 
+  // Prague trams run around the clock, so a feed with zero tracked trams is an
+  // upstream vehicle-data outage (Golemio still answers 200, possibly with
+  // residual untracked records), not an empty city. Throw so consumers serve
+  // their error paths instead of announcing "0 trams without AC" as fact.
+  if (trackedVehicles.length === 0) {
+    throw new Error("No tracked trams in the feed — upstream vehicle data outage");
+  }
+
   return {
     onTrack: buildCounts(routes, trackedVehicles),
     inService: buildCounts(routes, dedupeByVehicle(tramVehicles, lastUpdated)),
