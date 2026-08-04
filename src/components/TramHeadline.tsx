@@ -1,17 +1,17 @@
 import { getTemperatureColor, getTemperatureEmoji, NEUTRAL_TEXT_COLOR } from "@/lib/display";
 import { percentWithoutAC } from "@/lib/ratios";
-import type { TramAnalysisResult } from "@/lib/tram-analysis";
+import type { TramCounts } from "@/lib/tram-analysis";
 import { SkeletonBlock } from "./LoadingSkeleton";
 
 type TramHeadlineProps = {
-  data: TramAnalysisResult | null;
+  counts: TramCounts | null;
   temperature: number | null;
   showPercentages: boolean;
 };
 
-export function TramHeadline({ data, temperature, showPercentages }: TramHeadlineProps) {
+export function TramHeadline({ counts, temperature, showPercentages }: TramHeadlineProps) {
   const tempColor = temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
-  const countClass = `font-black font-mono inline-block ${data ? tempColor : ""}`;
+  const countClass = `font-black font-mono inline-block ${counts ? tempColor : ""}`;
 
   return (
     <h1 className="text-5xl text-gray-800 leading-tight md:text-6xl lg:text-7xl dark:text-gray-100">
@@ -31,14 +31,14 @@ export function TramHeadline({ data, temperature, showPercentages }: TramHeadlin
         </>
       )}
       <span className={countClass} style={{ minHeight: "1.2em" }}>
-        {data ? (
+        {counts ? (
           showPercentages ? (
             <>
-              {percentWithoutAC(data)}
+              {percentWithoutAC(counts)}
               <span className="font-sans">&nbsp;</span>%
             </>
           ) : (
-            data.tramsWithoutAC
+            counts.tramsWithoutAC
           )
         ) : (
           <SkeletonBlock />

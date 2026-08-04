@@ -188,13 +188,15 @@ function generateLineDetails(
 function buildAnalysisResult(state: DebugState): TramAnalysisResult {
   const withAC = Math.max(0, Math.min(state.tramsWithAC, state.totalTrams));
   const withoutAC = state.totalTrams - withAC;
-  return {
+  const counts = {
     totalTrams: state.totalTrams,
     tramsWithAC: withAC,
     tramsWithoutAC: withoutAC,
-    lastUpdated: new Date(),
     lineDetails: generateLineDetails(state.totalTrams, withAC, state.lineCount),
   };
+  // Debug sliders drive one set of numbers; the layover toggle just shows the
+  // same counts in both modes.
+  return { onTrack: counts, inService: counts, lastUpdated: new Date() };
 }
 
 export function DebugClient() {

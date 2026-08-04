@@ -27,6 +27,11 @@ export interface VehiclePosition {
       trip_id: string;
     };
     air_conditioned: boolean;
+    vehicle_registration_number: number;
+    start_timestamp: string;
+  };
+  last_position: {
+    tracking: boolean;
   };
 }
 
@@ -95,8 +100,13 @@ export function createTramRoutesLoader(
 export const getTramRoutes = createTramRoutesLoader();
 
 export async function getVehiclePositions(): Promise<VehiclePosition[]> {
+  // includeNotTracking adds the untracked trip records (before/after a run)
+  // that a tram on a terminus layover shows up as — without them a tram
+  // vanishes from the feed the moment it reaches the end stop and reappears
+  // on departure. Non-public trips (depot transfers, deadheads) stay excluded;
+  // we deliberately don't pass includeNotPublic.
   const response = await makeRequest<{
     features: Array<{ properties: VehiclePosition }>;
-  }>(`/v2/vehiclepositions?limit=${VEHICLE_POSITIONS_LIMIT}`);
+  }>(`/v2/vehiclepositions?limit=${VEHICLE_POSITIONS_LIMIT}&includeNotTracking=true`);
   return response.features.map((feature) => feature.properties);
 }

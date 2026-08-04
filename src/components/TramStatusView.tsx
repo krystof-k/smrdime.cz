@@ -31,6 +31,8 @@ export function TramStatusView({
   onRetry,
 }: TramStatusViewProps) {
   const [showPercentages, setShowPercentages] = useState(false);
+  const [includeLayovers, setIncludeLayovers] = useState(false);
+  const counts = data ? (includeLayovers ? data.inService : data.onTrack) : null;
 
   // Document-level tap-to-toggle. Lives off the JSX so the wrapper stays a
   // plain div — any click anywhere outside an interactive element flips the
@@ -61,24 +63,27 @@ export function TramStatusView({
                   onTogglePaused={onTogglePaused}
                   showPercentages={showPercentages}
                   onToggleShowPercentages={() => setShowPercentages((prev) => !prev)}
+                  includeLayovers={includeLayovers}
+                  onToggleIncludeLayovers={() => setIncludeLayovers((prev) => !prev)}
                 />
               </div>
               <div className="md:col-start-1 md:row-start-1">
                 <TramHeadline
-                  data={data}
+                  counts={counts}
                   temperature={temperature}
                   showPercentages={showPercentages}
                 />
                 <TramSummary
-                  data={data}
+                  counts={counts}
                   temperature={temperature}
                   showPercentages={showPercentages}
+                  includeLayovers={includeLayovers}
                 />
                 <ShareButton temperature={temperature} />
               </div>
             </div>
             <TramLineScroller
-              lines={data?.lineDetails ?? null}
+              lines={counts?.lineDetails ?? null}
               temperature={temperature}
               isDark={isDark}
               showPercentages={showPercentages}
@@ -97,6 +102,8 @@ type TopControlsProps = {
   onTogglePaused: () => void;
   showPercentages: boolean;
   onToggleShowPercentages: () => void;
+  includeLayovers: boolean;
+  onToggleIncludeLayovers: () => void;
 };
 
 function TopControls({
@@ -105,9 +112,25 @@ function TopControls({
   onTogglePaused,
   showPercentages,
   onToggleShowPercentages,
+  includeLayovers,
+  onToggleIncludeLayovers,
 }: TopControlsProps) {
   return (
     <div className="flex items-center justify-end gap-1">
+      <button
+        type="button"
+        onClick={onToggleIncludeLayovers}
+        aria-pressed={includeLayovers}
+        aria-label={
+          includeLayovers ? "Zobrazit jen tramvaje na trati" : "Zahrnout i tramvaje na konečných"
+        }
+        className="cursor-pointer rounded px-1 font-mono text-gray-400 text-xs transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+      >
+        {includeLayovers ? "Jen na trati" : "Včetně konečných"}
+      </button>
+      <span aria-hidden="true" className="text-gray-300 text-xs dark:text-gray-700">
+        •
+      </span>
       <button
         type="button"
         onClick={onToggleShowPercentages}

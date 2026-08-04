@@ -213,9 +213,12 @@ describe("getVehiclePositions", () => {
     assert.equal(result[0].trip.air_conditioned, true);
   });
 
-  it("requests all vehicle positions in a single call", async () => {
+  it("requests all vehicle positions in a single call, including untracked layovers", async () => {
     queueJson({ features: [] });
     await getVehiclePositions();
-    assert.equal(fetchCalls[0][0], "https://api.golemio.cz/v2/vehiclepositions?limit=10000");
+    assert.equal(
+      fetchCalls[0][0],
+      "https://api.golemio.cz/v2/vehiclepositions?limit=10000&includeNotTracking=true",
+    );
   });
 });
