@@ -1,26 +1,36 @@
 import { expect, test } from "@playwright/test";
 
+const sampleLineDetails = [
+  {
+    lineNumber: "9",
+    routeId: "9",
+    totalVehicles: 20,
+    vehiclesWithAC: 5,
+    vehiclesWithoutAC: 15,
+  },
+  {
+    lineNumber: "22",
+    routeId: "22",
+    totalVehicles: 15,
+    vehiclesWithAC: 12,
+    vehiclesWithoutAC: 3,
+  },
+];
+
 const sampleTramStatus = {
-  totalTrams: 120,
-  tramsWithAC: 40,
-  tramsWithoutAC: 80,
+  onTrack: {
+    totalTrams: 120,
+    tramsWithAC: 40,
+    tramsWithoutAC: 80,
+    lineDetails: sampleLineDetails,
+  },
+  inService: {
+    totalTrams: 150,
+    tramsWithAC: 50,
+    tramsWithoutAC: 100,
+    lineDetails: sampleLineDetails,
+  },
   lastUpdated: new Date("2026-04-19T12:00:00Z").toISOString(),
-  lineDetails: [
-    {
-      lineNumber: "9",
-      routeId: "9",
-      totalVehicles: 20,
-      vehiclesWithAC: 5,
-      vehiclesWithoutAC: 15,
-    },
-    {
-      lineNumber: "22",
-      routeId: "22",
-      totalVehicles: 15,
-      vehiclesWithAC: 12,
-      vehiclesWithoutAC: 3,
-    },
-  ],
 };
 
 const sampleWeather = { temperature: 28 };
@@ -79,6 +89,19 @@ test.describe("happy path", () => {
       "aria-pressed",
       "true",
     );
+  });
+
+  test("layover toggle switches to in-service counts and wording", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("80").first()).toBeVisible();
+    await expect(page.getByText(/na trati/)).toBeVisible();
+
+    await page.getByRole("button", { name: /Zahrnout i tramvaje na konečných/ }).click();
+    await expect(page.getByText("100").first()).toBeVisible();
+    await expect(page.getByText(/v provozu/)).toBeVisible();
+
+    await page.getByRole("button", { name: /Zobrazit jen tramvaje na trati/ }).click();
+    await expect(page.getByText("80").first()).toBeVisible();
   });
 
   test("dpp.cz popover reveals the 15T + 52T breakdown", async ({ page }) => {

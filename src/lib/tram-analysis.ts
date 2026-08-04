@@ -13,12 +13,19 @@ export interface TramLineInfo {
   vehiclesWithoutAC: number;
 }
 
-export interface TramAnalysisResult {
+export interface TramCounts {
   totalTrams: number;
   tramsWithoutAC: number;
   tramsWithAC: number;
-  lastUpdated: Date;
   lineDetails: TramLineInfo[];
+}
+
+export interface TramAnalysisResult {
+  /** Trams physically mid-trip (live tracked position). */
+  onTrack: TramCounts;
+  /** Every tram in service, including those laying over at a terminus. */
+  inService: TramCounts;
+  lastUpdated: Date;
 }
 
 function countByAC(vehicles: VehiclePosition[]): {
@@ -34,15 +41,9 @@ function countByAC(vehicles: VehiclePosition[]): {
   return { withAC, withoutAC };
 }
 
-export function analyze(
-  routes: Route[],
-  vehicles: VehiclePosition[],
-  lastUpdated: Date,
-): TramAnalysisResult {
-  const tramVehicles = vehicles.filter((vehicle) => vehicle.trip.gtfs.route_type === 0);
-
+function buildCounts(routes: Route[], vehicles: VehiclePosition[]): TramCounts {
   const vehiclesByRoute = new Map<string, VehiclePosition[]>();
-  for (const vehicle of tramVehicles) {
+  for (const vehicle of vehicles) {
     const routeId = vehicle.trip.gtfs.route_id;
     const existing = vehiclesByRoute.get(routeId);
     if (existing) existing.push(vehicle);
@@ -61,14 +62,55 @@ export function analyze(
     };
   });
 
-  const { withAC: tramsWithAC, withoutAC: tramsWithoutAC } = countByAC(tramVehicles);
+  const { withAC: tramsWithAC, withoutAC: tramsWithoutAC } = countByAC(vehicles);
 
   return {
-    totalTrams: tramVehicles.length,
+    totalTrams: vehicles.length,
     tramsWithoutAC,
     tramsWithAC,
-    lastUpdated,
     lineDetails,
+  };
+}
+
+// The feed has one record per *trip*, not per vehicle: a tram mid-trip is a
+// single tracked record, while a tram laying over at a terminus shows up as
+// several untracked ones (the finished trip plus upcoming trips). Count each
+// vehicle once — the live trip when tracked, else the next trip it will serve
+// (that's the line a waiting tram is about to be), else the just-finished one.
+function dedupeByVehicle(vehicles: VehiclePosition[], now: Date): VehiclePosition[] {
+  const byVehicle = new Map<number, VehiclePosition[]>();
+  for (const vehicle of vehicles) {
+    const registration = vehicle.trip.vehicle_registration_number;
+    const existing = byVehicle.get(registration);
+    if (existing) existing.push(vehicle);
+    else byVehicle.set(registration, [vehicle]);
+  }
+
+  return [...byVehicle.values()].map((records) => {
+    const tracked = records.find((record) => record.last_position.tracking);
+    if (tracked) return tracked;
+    const byStart = [...records].sort(
+      (a, b) => Date.parse(a.trip.start_timestamp) - Date.parse(b.trip.start_timestamp),
+    );
+    const upcoming = byStart.find(
+      (record) => Date.parse(record.trip.start_timestamp) >= now.getTime(),
+    );
+    return upcoming ?? byStart[byStart.length - 1];
+  });
+}
+
+export function analyze(
+  routes: Route[],
+  vehicles: VehiclePosition[],
+  lastUpdated: Date,
+): TramAnalysisResult {
+  const tramVehicles = vehicles.filter((vehicle) => vehicle.trip.gtfs.route_type === 0);
+  const trackedVehicles = tramVehicles.filter((vehicle) => vehicle.last_position.tracking);
+
+  return {
+    onTrack: buildCounts(routes, trackedVehicles),
+    inService: buildCounts(routes, dedupeByVehicle(tramVehicles, lastUpdated)),
+    lastUpdated,
   };
 }
 

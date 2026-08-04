@@ -156,7 +156,7 @@ export async function GET() {
     });
   }
 
-  const count = analysis.tramsWithoutAC;
+  const count = analysis.onTrack.tramsWithoutAC;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
   const stamp = STAMP_FORMAT.format(new Date());
 

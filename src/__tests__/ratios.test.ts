@@ -23,13 +23,12 @@ describe("roundPercent", () => {
 });
 
 describe("percentWithoutAC", () => {
-  it("computes the rounded percentage from analysis result fields", () => {
+  it("computes the rounded percentage from tram counts", () => {
     assert.equal(
       percentWithoutAC({
         totalTrams: 120,
         tramsWithoutAC: 80,
         tramsWithAC: 40,
-        lastUpdated: new Date(),
         lineDetails: [],
       }),
       67,
@@ -42,7 +41,6 @@ describe("percentWithoutAC", () => {
         totalTrams: 0,
         tramsWithoutAC: 0,
         tramsWithAC: 0,
-        lastUpdated: new Date(),
         lineDetails: [],
       }),
       0,
