@@ -87,8 +87,10 @@ describe("analyze", () => {
 
   it("attributes a layover tram to its next upcoming trip's line", () => {
     const result = analyze(
-      [route("1"), route("22")],
+      [route("1"), route("17"), route("22")],
       [
+        // Tracked anchor on an unrelated line so the empty-feed guard passes.
+        vehicle("17", true, { reg: 9001 }),
         vehicle("1", false, { reg: 9002, tracking: false, start: "2026-04-19T13:20:00+02:00" }),
         vehicle("22", false, { reg: 9002, tracking: false, start: "2026-04-19T14:10:00+02:00" }),
       ],
@@ -118,24 +120,29 @@ describe("analyze", () => {
 
   it("falls back to the most recent finished trip when no upcoming trip exists", () => {
     const result = analyze(
-      [route("1"), route("22")],
+      [route("1"), route("17"), route("22")],
       [
+        // Tracked anchor on an unrelated line so the empty-feed guard passes.
+        vehicle("17", true, { reg: 9001 }),
         vehicle("1", false, { reg: 9004, tracking: false, start: "2026-04-19T12:00:00+02:00" }),
         vehicle("22", false, { reg: 9004, tracking: false, start: "2026-04-19T13:00:00+02:00" }),
       ],
       FIXED_DATE,
     );
 
-    assert.equal(result.inService.totalTrams, 1);
+    assert.equal(result.inService.totalTrams, 2);
     const line22 = result.inService.lineDetails.find((line) => line.routeId === "22");
     assert.equal(line22?.totalVehicles, 1);
   });
 
-  it("returns zeros when no vehicles", () => {
-    const result = analyze([route("1")], [], FIXED_DATE);
-    assert.equal(result.onTrack.totalTrams, 0);
-    assert.equal(result.onTrack.tramsWithoutAC, 0);
-    assert.equal(result.onTrack.lineDetails[0].totalVehicles, 0);
-    assert.equal(result.inService.totalTrams, 0);
+  it("throws when the feed has no vehicles at all", () => {
+    assert.throws(() => analyze([route("1")], [], FIXED_DATE), /outage/);
+  });
+
+  it("throws when the feed has only untracked residual records", () => {
+    assert.throws(
+      () => analyze([route("1")], [vehicle("1", false, { tracking: false })], FIXED_DATE),
+      /outage/,
+    );
   });
 });
