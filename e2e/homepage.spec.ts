@@ -115,6 +115,24 @@ test.describe("happy path", () => {
     await expect(tooltip).toContainText("Škoda 52T");
   });
 
+  test("line search filters the cards and reports a missing line", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("5/20")).toBeVisible();
+    await expect(page.getByText("12/15")).toBeVisible();
+
+    const search = page.getByRole("searchbox", { name: "Hledat linku" });
+    await search.fill("2");
+    await expect(page.getByText("12/15")).toBeVisible();
+    await expect(page.getByText("5/20")).not.toBeVisible();
+
+    await search.fill("42");
+    await expect(page.getByText("Linka „42“ teď nejspíš nejezdí.")).toBeVisible();
+
+    await search.fill("");
+    await expect(page.getByText("5/20")).toBeVisible();
+    await expect(page.getByText("12/15")).toBeVisible();
+  });
+
   test("pause button toggles aria-pressed", async ({ page }) => {
     await page.goto("/");
     const pauseButton = page.getByRole("button", {
