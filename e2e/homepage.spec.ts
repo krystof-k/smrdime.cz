@@ -115,12 +115,16 @@ test.describe("happy path", () => {
     await expect(tooltip).toContainText("Škoda 52T");
   });
 
-  test("line search filters the cards and reports a missing line", async ({ page }) => {
+  test("line search expands from the magnifier, filters, and collapses on Escape", async ({
+    page,
+  }) => {
     await page.goto("/");
     await expect(page.getByText("5/20")).toBeVisible();
     await expect(page.getByText("12/15")).toBeVisible();
 
+    await page.getByRole("button", { name: "Hledat linku" }).click();
     const search = page.getByRole("searchbox", { name: "Hledat linku" });
+    await expect(search).toBeFocused();
     await search.fill("2");
     await expect(page.getByText("12/15")).toBeVisible();
     await expect(page.getByText("5/20")).not.toBeVisible();
@@ -128,7 +132,9 @@ test.describe("happy path", () => {
     await search.fill("42");
     await expect(page.getByText("Linka „42“ teď nejspíš nejezdí.")).toBeVisible();
 
-    await search.fill("");
+    await search.press("Escape");
+    await expect(search).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Hledat linku" })).toBeVisible();
     await expect(page.getByText("5/20")).toBeVisible();
     await expect(page.getByText("12/15")).toBeVisible();
   });
