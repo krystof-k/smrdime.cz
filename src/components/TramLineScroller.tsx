@@ -27,21 +27,24 @@ export function TramLineScroller({
 
   return (
     <div className="mt-8">
-      <div className="px-4 md:px-8 lg:px-12">
-        <input
-          type="search"
-          inputMode="numeric"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Hledat linku…"
-          aria-label="Hledat linku"
-          className="h-9 w-40 rounded-xl bg-white/60 px-3 font-mono text-gray-700 text-sm backdrop-blur-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800/60 dark:text-gray-200 dark:placeholder:text-gray-500"
-        />
-      </div>
       <div
-        className="mt-3 flex w-0 min-w-full gap-4 overflow-x-auto pr-4 pb-4 pl-4 md:pr-8 md:pl-8 lg:pr-12 lg:pl-12"
+        className="flex w-0 min-w-full gap-4 overflow-x-auto pr-4 pb-4 pl-4 md:pr-8 md:pl-8 lg:pr-12 lg:pl-12"
         style={{ scrollbarWidth: "thin" }}
       >
+        <div className="flex h-16 w-40 shrink-0 items-center gap-2 rounded-2xl bg-white/50 p-3 backdrop-blur-sm focus-within:ring-2 focus-within:ring-blue-400 dark:bg-gray-800/50">
+          <span aria-hidden="true" className="text-2xl">
+            🔍
+          </span>
+          <input
+            type="search"
+            inputMode="numeric"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Linka"
+            aria-label="Hledat linku"
+            className="w-full min-w-0 bg-transparent font-black font-mono text-gray-800 text-xl outline-none placeholder:font-normal placeholder:text-base placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
+          />
+        </div>
         {!visibleLines
           ? SKELETON_KEYS.map((key) => <TramLineSkeleton key={key} />)
           : visibleLines.length > 0
