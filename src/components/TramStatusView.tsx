@@ -41,7 +41,7 @@ export function TramStatusView({
     const handler = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest('a, button, input, [role="tooltip"]')) return;
+      if (target.closest('a, button, input, search, [role="tooltip"]')) return;
       setShowPercentages((prev) => !prev);
     };
     document.addEventListener("click", handler);

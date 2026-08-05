@@ -122,12 +122,19 @@ test.describe("happy path", () => {
     await expect(page.getByText("5/20")).toBeVisible();
     await expect(page.getByText("12/15")).toBeVisible();
 
-    await page.getByRole("button", { name: "Hledat linku" }).click();
+    // Click a card corner away from the emoji — the whole card must open the
+    // search without triggering the page-wide counts/percentages toggle.
+    await page.getByRole("button", { name: "Hledat linku" }).click({ position: { x: 50, y: 6 } });
     const search = page.getByRole("searchbox", { name: "Hledat linku" });
     await expect(search).toBeFocused();
+    await expect(page.getByRole("heading", { level: 1 })).not.toContainText("%");
     await search.fill("2");
     await expect(page.getByText("12/15")).toBeVisible();
     await expect(page.getByText("5/20")).not.toBeVisible();
+
+    await page.getByRole("search").click({ position: { x: 155, y: 6 } });
+    await expect(page.getByRole("heading", { level: 1 })).not.toContainText("%");
+    await expect(search).toBeVisible();
 
     await search.fill("42");
     await expect(page.getByText("Linka „42“ teď nejspíš nejezdí.")).toBeVisible();
@@ -137,6 +144,21 @@ test.describe("happy path", () => {
     await expect(page.getByRole("button", { name: "Hledat linku" })).toBeVisible();
     await expect(page.getByText("5/20")).toBeVisible();
     await expect(page.getByText("12/15")).toBeVisible();
+  });
+
+  test("typing a digit anywhere opens the search and filters", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("5/20")).toBeVisible();
+
+    await page.keyboard.type("2");
+    const search = page.getByRole("searchbox", { name: "Hledat linku" });
+    await expect(search).toHaveValue("2");
+    await expect(search).toBeFocused();
+    await expect(page.getByText("12/15")).toBeVisible();
+    await expect(page.getByText("5/20")).not.toBeVisible();
+
+    await page.keyboard.type("2");
+    await expect(search).toHaveValue("22");
   });
 
   test("pause button toggles aria-pressed", async ({ page }) => {
