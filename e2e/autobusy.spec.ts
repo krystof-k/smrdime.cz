@@ -20,8 +20,8 @@ test.describe("bus page", () => {
 
   test("summary skips the tram-only AC fleet clause", async ({ page }) => {
     await page.goto("/autobusy");
-    await expect(page.getByText(/z celkových 300 autobusů/)).toBeVisible();
-    await expect(page.getByText(/na lince/)).toBeVisible();
+    await expect(page.getByText(/z 300 autobusů/)).toBeVisible();
+    await expect(page.getByText(/na trase/)).toBeVisible();
     await expect(page.getByText(/ze všech/)).toHaveCount(0);
   });
 
@@ -48,13 +48,13 @@ test.describe("bus page", () => {
 
   test("layover toggle uses bus wording", async ({ page }) => {
     await page.goto("/autobusy");
-    await expect(page.getByText(/na lince/)).toBeVisible();
+    await expect(page.getByText(/na trase/)).toBeVisible();
 
     await page.getByRole("button", { name: /Zahrnout i autobusy na konečných/ }).click();
     await expect(page.getByText("100").first()).toBeVisible();
     await expect(page.getByText(/v provozu/)).toBeVisible();
 
-    await page.getByRole("button", { name: /Zobrazit jen autobusy na lince/ }).click();
+    await page.getByRole("button", { name: /Zobrazit jen autobusy na trase/ }).click();
     await expect(page.getByText("90").first()).toBeVisible();
   });
 

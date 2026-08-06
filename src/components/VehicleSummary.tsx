@@ -24,10 +24,9 @@ export function VehicleSummary({
   const { nounForms, onRouteLabel } = VEHICLE_MODES[mode];
   const emphasisColor =
     temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
-  // First emphasis ("80 z celkových 120" / "67 % z celkových 120") is inverted
-  // vs the headline so both forms are on screen at once. The second emphasis
-  // ("ze všech 147") follows the toggle directly — there's no headline
-  // counterpart for it.
+  // First emphasis ("80 z 120" / "67 % z 120") is inverted vs the headline so
+  // both forms are on screen at once. The second emphasis ("ze všech 147")
+  // follows the toggle directly — there's no headline counterpart for it.
   const summaryShowsPercentages = !showPercentages;
   const scopeLabel = includeLayovers ? "v provozu" : onRouteLabel;
 
@@ -39,13 +38,12 @@ export function VehicleSummary({
     : null;
 
   // DPP publishes a verified AC-equipped fleet count for trams only, so the
-  // "ze všech N klimatizovaných" sentence has nothing to cite in bus mode.
-  // Standalone sentence: gluing it into the first one with "a" would make
-  // "To je" (the without-AC figure) look like the subject of the AC count.
+  // "ze všech N klimatizovaných" clause has nothing to cite in bus mode.
   const fleetClause =
     mode === "tram" ? (
       <>
-        . Zároveň je {scopeLabel}{" "}
+        {" "}
+        a{" "}
         {counts ? (
           showPercentages ? (
             <span className={`font-black ${emphasisColor}`}>
@@ -90,16 +88,14 @@ export function VehicleSummary({
                 <span className="font-mono">{percentWithoutAC(counts)}</span>{" "}
                 <span className="font-mono">%</span>
               </span>{" "}
-              {/* "z celkových N" sidesteps the z/ze vocalization minefield
-                  ("ze 120", "z 55") that a bare "z N" steps on. */}
-              z celkových {counts.totalVehicles}
+              z {counts.totalVehicles}
             </>
           ) : (
             <>
               <span className={`font-black ${emphasisColor}`}>
                 <span className="font-mono">{counts.vehiclesWithoutAC}</span>
               </span>{" "}
-              z celkových {counts.totalVehicles}
+              z {counts.totalVehicles}
             </>
           )}{" "}
           {nounForms.many}, které jsou právě {scopeLabel}
@@ -107,7 +103,7 @@ export function VehicleSummary({
         </>
       ) : (
         <>
-          To je <SkeletonBlock /> z celkových <SkeletonBlock /> {nounForms.many}, které jsou právě{" "}
+          To je <SkeletonBlock /> z <SkeletonBlock /> {nounForms.many}, které jsou právě{" "}
           {scopeLabel}
           {fleetClause}
         </>

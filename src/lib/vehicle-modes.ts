@@ -12,7 +12,7 @@ export type VehicleModeConfig = {
   nounForms: { one: string; few: string; many: string };
   /** Nominative/accusative plural — "Zahrnout i tramvaje…", "A co autobusy?". */
   plural: string;
-  /** Where a vehicle mid-trip is said to be: trams run "na trati", buses "na lince". */
+  /** Where a vehicle mid-trip is said to be: trams run "na trati", buses "na trase". */
   onRouteLabel: string;
   /** Where the vehicles gossip when the API is down: "v depu" / "v garáži". */
   restingPlace: string;
@@ -40,7 +40,7 @@ export const VEHICLE_MODES: Record<VehicleMode, VehicleModeConfig> = {
     emoji: "🚌",
     nounForms: { one: "autobus", few: "autobusy", many: "autobusů" },
     plural: "autobusy",
-    onRouteLabel: "na lince",
+    onRouteLabel: "na trase",
     restingPlace: "v garáži",
     title: "Smrdíme? Kolik pražských autobusů jede bez klimatizace",
     description: "Živý přehled, kolik pražských autobusů zrovna jezdí bez klimatizace.",

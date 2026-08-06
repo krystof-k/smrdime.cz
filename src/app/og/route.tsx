@@ -98,15 +98,23 @@ async function fetchTemperature(): Promise<number | null> {
 }
 
 // Mirrors VehicleHeadline's weight/color mix so the card reads like the homepage.
-// Each unit carries a trailing space as a margin (see SPACE).
-function word(text: string, weight: 100 | 400 | 900, color?: string, mono?: boolean) {
+// Each unit carries a trailing space as a margin (see SPACE); pass a smaller
+// marginRight for sub-word gaps like the thin space in "28 °C" — a literal
+// U+202F would depend on Geist having the glyph, a margin doesn't.
+function word(
+  text: string,
+  weight: 100 | 400 | 900,
+  color?: string,
+  mono?: boolean,
+  marginRight: number = SPACE,
+) {
   return (
     <span
       style={{
         fontWeight: weight,
         fontFamily: mono ? "Geist Mono" : "Geist",
         color,
-        marginRight: SPACE,
+        marginRight,
       }}
     >
       {text}
@@ -170,7 +178,8 @@ export async function GET(request: Request) {
           word("V", 400),
           word("Praze", 900),
           word("je", 100),
-          word(`${temperature}\u00A0°C`, 900, accent, true),
+          word(`${temperature}`, 900, accent, true, 8 * SCALE),
+          word("°C", 900, accent, true),
           ...emoji(getTemperatureEmoji(temperature)),
           // Full-width flex item forces a wrap, mirroring VehicleHeadline's <br/>.
           <div key="br" style={{ width: "100%" }} />,

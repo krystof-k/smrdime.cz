@@ -31,7 +31,8 @@ export function VehicleHeadline({
           V <span className="font-black">Praze</span> <span className="font-thin">je</span>{" "}
           <span className={`font-black font-mono ${getTemperatureColor(temperature)}`}>
             {temperature}
-            {"\u00A0"}°C
+            {/* narrow no-break space — a full space gapes in the mono font */}
+            {"\u202F"}°C
           </span>{" "}
           {getTemperatureEmoji(temperature)}
           <br />
