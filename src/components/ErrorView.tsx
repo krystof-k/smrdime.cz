@@ -7,7 +7,7 @@ type ErrorViewProps = {
 };
 
 export function ErrorView({ mode, message, onRetry }: ErrorViewProps) {
-  const { genitive, plural, restingPlace } = VEHICLE_MODES[mode];
+  const { nounForms, plural, restingPlace } = VEHICLE_MODES[mode];
   return (
     <div className="px-4 text-left md:px-8 lg:px-12">
       <h1 className="text-5xl text-gray-800 leading-tight md:text-6xl lg:text-7xl dark:text-gray-100">
@@ -15,7 +15,7 @@ export function ErrorView({ mode, message, onRetry }: ErrorViewProps) {
         <span className="font-black font-mono text-red-600 dark:text-red-400">chaos</span> 💥
         <br />
         <span className="font-thin">a</span> <span className="font-black">nevíme</span>,{" "}
-        <span className="font-thin">kolik {genitive} jede bez klimatizace</span>.
+        <span className="font-thin">kolik {nounForms.many} jede bez klimatizace</span>.
       </h1>
       <p className="mt-8 font-light text-gray-600 text-xl leading-relaxed md:text-2xl dark:text-gray-300">
         Server si asi dal <span className="font-black">pauzu</span>, nebo se {plural}{" "}

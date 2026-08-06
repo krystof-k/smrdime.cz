@@ -112,9 +112,9 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
                 >
                   DPP
                 </a>{" "}
-                jezdí v Praze <span className="font-mono">{AC_FLEET_15T}</span> klimatizovaných
-                tramvají <span className="whitespace-nowrap">Škoda 15T</span> (druhá dodávka) a
-                všech <span className="font-mono">{AC_FLEET_52T}</span> dosud dodaných tramvají{" "}
+                je v Praze <span className="font-mono">{AC_FLEET_15T}</span> klimatizovaných
+                tramvají <span className="whitespace-nowrap">Škoda 15T</span> (druhá dodávka) a{" "}
+                <span className="font-mono">{AC_FLEET_52T}</span> tramvají{" "}
                 <a
                   href={DPP_52T_URL}
                   target="_blank"
@@ -122,12 +122,13 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
                   className={linkClass}
                 >
                   Škoda 52T
-                </a>
-                .
+                </a>{" "}
+                dodaných do konce roku 2025.
               </>
             ) : (
               <>
-                Městské linky jezdí kromě DPP i smluvní dopravci PID. Podle{" "}
+                Počítáme jen městské linky PID včetně trolejbusů, příměstské ne. Kromě DPP je jezdí
+                i smluvní dopravci PID. Podle{" "}
                 <a
                   href={DPP_AC_FAQ_URL}
                   target="_blank"

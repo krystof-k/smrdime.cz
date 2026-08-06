@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Route, VehiclePosition } from "../lib/golemio-api.ts";
+import { percentWithoutAC } from "../lib/ratios.ts";
 import { analyze, isCityBusLine } from "../lib/vehicle-analysis.ts";
 
 function route(id: string, name = id, routeType = 0): Route {
@@ -18,7 +19,13 @@ let tripCounter = 0;
 function vehicle(
   routeId: string,
   acStatus: boolean | null,
-  opts: { reg?: number; tracking?: boolean; start?: string; routeType?: number } = {},
+  opts: {
+    reg?: number | null;
+    tracking?: boolean;
+    start?: string;
+    routeType?: number;
+    statePosition?: string;
+  } = {},
 ): VehiclePosition {
   tripCounter += 1;
   return {
@@ -30,11 +37,12 @@ function vehicle(
         trip_id: `trip-${tripCounter}`,
       },
       air_conditioned: acStatus,
-      vehicle_registration_number: opts.reg ?? tripCounter,
+      vehicle_registration_number: opts.reg === undefined ? tripCounter : opts.reg,
       start_timestamp: opts.start ?? "2026-04-19T11:00:00+02:00",
     },
     last_position: {
       tracking: opts.tracking ?? true,
+      state_position: opts.statePosition,
     },
   };
 }
@@ -153,6 +161,91 @@ describe("analyze — tram mode", () => {
     assert.equal(line22?.totalVehicles, 1);
   });
 
+  it("counts an unregistered vehicle only while tracked", () => {
+    const result = analyze(
+      [route("1"), route("22")],
+      [
+        vehicle("1", true, { reg: 9001 }),
+        vehicle("1", false, { reg: null, tracking: true }),
+        // Untracked no-registration records can't be tied to a vehicle, so
+        // they must not each count as one more vehicle in service.
+        vehicle("1", false, {
+          reg: null,
+          tracking: false,
+          start: "2026-04-19T14:10:00+02:00",
+          statePosition: "before_track",
+        }),
+        vehicle("22", false, {
+          reg: null,
+          tracking: false,
+          start: "2026-04-19T14:40:00+02:00",
+          statePosition: "before_track",
+        }),
+      ],
+      FIXED_DATE,
+      "tram",
+    );
+
+    assert.equal(result.onTrack.totalVehicles, 2);
+    assert.equal(result.inService.totalVehicles, 2);
+  });
+
+  it("attributes a delayed, not-yet-departed trip to its own line", () => {
+    const result = analyze(
+      [route("1"), route("17"), route("22")],
+      [
+        // Tracked anchor on an unrelated line so the empty-feed guard passes.
+        vehicle("17", true, { reg: 9001 }),
+        // Scheduled before "now" but still waiting to depart (delayed) —
+        // the vehicle serves this trip next, not the later one.
+        vehicle("1", false, {
+          reg: 9002,
+          tracking: false,
+          start: "2026-04-19T13:55:00+02:00",
+          statePosition: "before_track_delayed",
+        }),
+        vehicle("22", false, {
+          reg: 9002,
+          tracking: false,
+          start: "2026-04-19T14:30:00+02:00",
+          statePosition: "before_track",
+        }),
+      ],
+      FIXED_DATE,
+      "tram",
+    );
+
+    const line1 = result.inService.lineDetails.find((line) => line.routeId === "1");
+    assert.equal(line1?.totalVehicles, 1);
+    const line22 = result.inService.lineDetails.find((line) => line.routeId === "22");
+    assert.equal(line22?.totalVehicles, 0);
+  });
+
+  it("dedupes two simultaneously tracked records of one vehicle", () => {
+    const result = analyze(
+      [route("1"), route("22")],
+      [
+        vehicle("1", true, { reg: 9003, tracking: true }),
+        vehicle("22", true, { reg: 9003, tracking: true }),
+      ],
+      FIXED_DATE,
+      "tram",
+    );
+
+    assert.equal(result.onTrack.totalVehicles, 1);
+    assert.equal(result.inService.totalVehicles, 1);
+  });
+
+  it("keeps unknown-AC vehicles in the without-AC percentage denominator", () => {
+    const result = analyze(
+      [route("1")],
+      [vehicle("1", true), vehicle("1", false), vehicle("1", null)],
+      FIXED_DATE,
+      "tram",
+    );
+    assert.equal(percentWithoutAC(result.onTrack), 33);
+  });
+
   it("throws when the feed has no vehicles at all", () => {
     assert.throws(() => analyze([route("1")], [], FIXED_DATE, "tram"), /outage/);
   });
@@ -260,8 +353,12 @@ describe("isCityBusLine", () => {
   });
 
   it("accepts night city lines (900–939)", () => {
+    // 900 itself doesn't exist (lines run 901–917), but sits inside the
+    // deliberate window; 940 is the first number past it.
+    assert.equal(isCityBusLine("900"), true);
     assert.equal(isCityBusLine("907"), true);
     assert.equal(isCityBusLine("939"), true);
+    assert.equal(isCityBusLine("940"), false);
   });
 
   it("rejects trolleybus numbers — those qualify by route type, not number", () => {
@@ -269,10 +366,11 @@ describe("isCityBusLine", () => {
     assert.equal(isCityBusLine("59"), false);
   });
 
-  it("rejects suburban day and night lines", () => {
+  it("rejects suburban day and night lines and sub-100 numbers", () => {
+    assert.equal(isCityBusLine("99"), false);
     assert.equal(isCityBusLine("300"), false);
     assert.equal(isCityBusLine("799"), false);
-    assert.equal(isCityBusLine("941"), false);
+    assert.equal(isCityBusLine("951"), false);
   });
 
   it("rejects non-numeric specials (AE, X-lines, other towns' MHD)", () => {

@@ -1,7 +1,8 @@
 /**
  * AC-equipped tram subfleets. Source: DPP FAQ (see `DPP_AC_FAQ_URL`) and the
- * 52T rolling stock page (`DPP_52T_URL`). Last verified: 2026-04-19. Update
- * whenever DPP publishes new delivery milestones.
+ * 52T rolling stock page (`DPP_52T_URL`). Last verified: 2026-08-06 — the FAQ
+ * still states 20 × 52T "k 31. prosinci 2025" and expects +20 during 2026,
+ * so re-check after DPP announces new deliveries.
  *
  *   - Škoda 15T: second delivery
  *   - Škoda 52T: delivered by 2025-12-18; 71 ordered in total, rolling out

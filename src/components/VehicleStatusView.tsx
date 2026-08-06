@@ -88,7 +88,7 @@ export function VehicleStatusView({
                 />
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <ShareButton mode={mode} temperature={temperature} />
-                  <ModeSwitchLink mode={mode} temperature={temperature} />
+                  <ModeSwitchLink mode={mode} />
                 </div>
               </div>
             </div>

@@ -20,7 +20,7 @@ test.describe("bus page", () => {
 
   test("summary skips the tram-only AC fleet clause", async ({ page }) => {
     await page.goto("/autobusy");
-    await expect(page.getByText(/z 300 autobusů/)).toBeVisible();
+    await expect(page.getByText(/z celkových 300 autobusů/)).toBeVisible();
     await expect(page.getByText(/na lince/)).toBeVisible();
     await expect(page.getByText(/ze všech/)).toHaveCount(0);
   });

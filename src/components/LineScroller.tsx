@@ -121,7 +121,7 @@ export function LineScroller({
               ))
             : trimmedQuery !== "" && (
                 <p className="flex h-16 shrink-0 items-center font-mono text-gray-600 text-sm dark:text-gray-300">
-                  Linka „{trimmedQuery}“ teď nejspíš nejezdí.
+                  Linka „{trimmedQuery}“ teď nejspíš nejezdí, nebo ji nesledujeme.
                 </p>
               )}
       </div>

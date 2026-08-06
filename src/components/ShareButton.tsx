@@ -8,9 +8,9 @@ import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 const SHARE_TITLE = "Smrdíme?";
 
 // Shared by the share button and the mode-switch link so the action row reads
-// as one control family.
+// as one control family; each button brings its own colors on top.
 export const ACTION_BUTTON_CLASS =
-  "inline-flex items-center gap-2 rounded-lg border-2 px-5 py-2.5 font-medium font-mono text-base transition-colors hover:bg-gray-50 dark:hover:bg-white/5";
+  "inline-flex items-center gap-2 rounded-lg border-2 px-5 py-2.5 font-medium font-mono text-base transition-colors";
 
 export function ShareButton({
   mode,
@@ -53,7 +53,7 @@ export function ShareButton({
       type="button"
       onClick={handleShare}
       style={{ color: accent, borderColor: accent }}
-      className={ACTION_BUTTON_CLASS}
+      className={`${ACTION_BUTTON_CLASS} hover:bg-gray-50 dark:hover:bg-white/5`}
     >
       <svg
         aria-hidden="true"

@@ -1,7 +1,7 @@
 import { getTemperatureColor, getTemperatureEmoji, NEUTRAL_TEXT_COLOR } from "@/lib/display";
 import { percentWithoutAC } from "@/lib/ratios";
 import type { VehicleCounts } from "@/lib/vehicle-analysis";
-import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
+import { VEHICLE_MODES, type VehicleMode, vehicleNoun } from "@/lib/vehicle-modes";
 import { SkeletonBlock } from "./LoadingSkeleton";
 
 type VehicleHeadlineProps = {
@@ -17,9 +17,12 @@ export function VehicleHeadline({
   temperature,
   showPercentages,
 }: VehicleHeadlineProps) {
-  const { genitive, emoji } = VEHICLE_MODES[mode];
+  const { emoji, nounForms } = VEHICLE_MODES[mode];
   const tempColor = temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
   const countClass = `font-black font-mono inline-block ${counts ? tempColor : ""}`;
+  // "1 tramvaj / 3 tramvaje / 80 tramvají"; percentages take the genitive.
+  const noun =
+    counts && !showPercentages ? vehicleNoun(mode, counts.vehiclesWithoutAC) : nounForms.many;
 
   return (
     <h1 className="text-5xl text-gray-800 leading-tight md:text-6xl lg:text-7xl dark:text-gray-100">
@@ -27,7 +30,8 @@ export function VehicleHeadline({
         <>
           V <span className="font-black">Praze</span> <span className="font-thin">je</span>{" "}
           <span className={`font-black font-mono ${getTemperatureColor(temperature)}`}>
-            {temperature}°C
+            {temperature}
+            {"\u00A0"}°C
           </span>{" "}
           {getTemperatureEmoji(temperature)}
           <br />
@@ -52,7 +56,7 @@ export function VehicleHeadline({
           <SkeletonBlock />
         )}
       </span>{" "}
-      <span className="font-thin">{genitive}</span> {emoji}
+      <span className="font-thin">{noun}</span> {emoji}
       <br />
       <span className="font-black">bez klimatizace</span>.
     </h1>

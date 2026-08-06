@@ -2,7 +2,7 @@ import { WEATHER_API_URL } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { OG_EMOJI } from "@/lib/og-emoji";
 import { analyzeACStatus } from "@/lib/vehicle-analysis";
-import { VEHICLE_MODES } from "@/lib/vehicle-modes";
+import { VEHICLE_MODES, vehicleNoun } from "@/lib/vehicle-modes";
 
 // workers-og pulls in Satori/resvg WASM that only links in the Cloudflare
 // worker, not when Next evaluates this module in Node at build time. Importing
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
   const { ImageResponse, loadGoogleFont } = await import("workers-og");
 
   const mode = new URL(request.url).searchParams.get("v") === "bus" ? "bus" : "tram";
-  const { genitive, emoji: vehicleEmoji } = VEHICLE_MODES[mode];
+  const { emoji: vehicleEmoji } = VEHICLE_MODES[mode];
 
   const [analysis, temperature, fonts] = await Promise.all([
     analyzeACStatus(mode).catch(() => null),
@@ -170,13 +170,13 @@ export async function GET(request: Request) {
           word("V", 400),
           word("Praze", 900),
           word("je", 100),
-          word(`${temperature}°C`, 900, accent, true),
+          word(`${temperature}\u00A0°C`, 900, accent, true),
           ...emoji(getTemperatureEmoji(temperature)),
           // Full-width flex item forces a wrap, mirroring VehicleHeadline's <br/>.
           <div key="br" style={{ width: "100%" }} />,
           word("a jezdí", 100),
           word(`${count}`, 900, accent, true),
-          word(genitive, 100),
+          word(vehicleNoun(mode, count), 100),
           ...emoji(vehicleEmoji),
           <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),
@@ -186,7 +186,7 @@ export async function GET(request: Request) {
           word("Praze", 900),
           word("jezdí", 100),
           word(`${count}`, 900, accent, true),
-          word(genitive, 100),
+          word(vehicleNoun(mode, count), 100),
           ...emoji(vehicleEmoji),
           <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),

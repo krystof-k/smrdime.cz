@@ -38,10 +38,12 @@ const BUS_ROUTE_TYPE = 3;
 /**
  * PID line-number ranges for Prague city bus service (route type 3):
  *   100–299  daytime city lines (incl. school lines)
- *   900–939  night city lines (suburban night starts at 941)
+ *   900–939  night city lines (currently 901–917; suburban night is 951+)
  * Everything else the feed carries as a bus — suburban 300+, tram-replacement
  * X-lines, specials like AE or other towns' "MHD n" lines — is not a
- * "pražský autobus".
+ * "pražský autobus". Cross-checked 2026-08-06 against the official ROPID
+ * "Seznam linek PID" (June 2026): the ranges match its "městská linka"
+ * category exactly (181 lines, zero mismatches either way).
  */
 export function isCityBusLine(lineNumber: string): boolean {
   if (!/^\d+$/.test(lineNumber)) return false;
@@ -111,28 +113,43 @@ function buildCounts(routes: Route[], vehicles: VehiclePosition[]): VehicleCount
 // vehicle once — the live trip when tracked, else the next trip it will serve
 // (that's the line a waiting vehicle is about to be), else the just-finished one.
 function dedupeByVehicle(vehicles: VehiclePosition[], now: Date): VehiclePosition[] {
-  const byVehicle = new Map<number | string, VehiclePosition[]>();
+  const byVehicle = new Map<number, VehiclePosition[]>();
+  const unregistered: VehiclePosition[] = [];
   for (const vehicle of vehicles) {
-    // Registration is nullable upstream; falling back to the trip id keeps a
-    // no-registration record as its own vehicle instead of collapsing all of
-    // them into one map entry.
-    const registration = vehicle.trip.vehicle_registration_number ?? vehicle.trip.gtfs.trip_id;
+    const registration = vehicle.trip.vehicle_registration_number;
+    if (registration == null) {
+      // Without a registration the record can't be tied to the vehicle's
+      // other trips, so each of its layover records would masquerade as one
+      // more vehicle. Count it only while physically tracked — that may
+      // undercount layovers, but never overcounts.
+      if (vehicle.last_position.tracking) unregistered.push(vehicle);
+      continue;
+    }
     const existing = byVehicle.get(registration);
     if (existing) existing.push(vehicle);
     else byVehicle.set(registration, [vehicle]);
   }
 
-  return [...byVehicle.values()].map((records) => {
+  const deduped = [...byVehicle.values()].map((records) => {
     const tracked = records.find((record) => record.last_position.tracking);
     if (tracked) return tracked;
     const byStart = [...records].sort(
       (a, b) => Date.parse(a.trip.start_timestamp) - Date.parse(b.trip.start_timestamp),
     );
+    // A before_track trip hasn't departed yet even when its scheduled start
+    // is in the past (before_track_delayed) — it's what the vehicle serves
+    // next; comparing the schedule against the clock alone would skip it and
+    // misattribute the vehicle to a later trip's line.
+    const pending = byStart.find((record) =>
+      record.last_position.state_position?.startsWith("before_track"),
+    );
+    if (pending) return pending;
     const upcoming = byStart.find(
       (record) => Date.parse(record.trip.start_timestamp) >= now.getTime(),
     );
     return upcoming ?? byStart[byStart.length - 1];
   });
+  return [...deduped, ...unregistered];
 }
 
 export function analyze(
@@ -159,7 +176,9 @@ export function analyze(
   }
 
   return {
-    onTrack: buildCounts(modeRoutes, trackedVehicles),
+    // Tracked records get deduped too: around a trip handover the feed can
+    // transiently carry two tracked records of one physical vehicle.
+    onTrack: buildCounts(modeRoutes, dedupeByVehicle(trackedVehicles, lastUpdated)),
     inService: buildCounts(modeRoutes, dedupeByVehicle(modeVehicles, lastUpdated)),
     lastUpdated,
   };

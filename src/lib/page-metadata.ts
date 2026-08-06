@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { VEHICLE_MODES, type VehicleMode } from "./vehicle-modes";
+import { VEHICLE_MODES, type VehicleMode } from "./vehicle-modes.ts";
 
 // A 30s time bucket busts the og:image URL so a platform re-scraping the page
 // pulls a fresh render instead of its cached copy. Matches the /og edge TTL, so

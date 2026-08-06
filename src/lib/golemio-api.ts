@@ -38,6 +38,13 @@ export interface VehiclePosition {
   };
   last_position: {
     tracking: boolean;
+    /**
+     * Golemio enum; the untracked states served by the API are
+     * "before_track", "before_track_delayed" and "canceled" — a
+     * before_track* trip has not departed yet, even if its scheduled
+     * start is already in the past.
+     */
+    state_position?: string;
   };
 }
 

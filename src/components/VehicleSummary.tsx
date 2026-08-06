@@ -21,29 +21,35 @@ export function VehicleSummary({
   showPercentages,
   includeLayovers,
 }: VehicleSummaryProps) {
-  const { genitive, onRouteLabel } = VEHICLE_MODES[mode];
+  const { nounForms, onRouteLabel } = VEHICLE_MODES[mode];
   const emphasisColor =
     temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
-  // First emphasis ("80 z 120" / "67 % z 120") is inverted vs the headline so
-  // both forms are on screen at once. The second emphasis ("ze všech 147")
-  // follows the toggle directly — there's no headline counterpart for it.
+  // First emphasis ("80 z celkových 120" / "67 % z celkových 120") is inverted
+  // vs the headline so both forms are on screen at once. The second emphasis
+  // ("ze všech 147") follows the toggle directly — there's no headline
+  // counterpart for it.
   const summaryShowsPercentages = !showPercentages;
   const scopeLabel = includeLayovers ? "v provozu" : onRouteLabel;
 
+  // A share of the fixed DPP fleet total can only exceed 100 % when the
+  // constant has gone stale (more AC trams delivered than AC_FLEET_TOTAL
+  // knows about); showing "103 %" would be absurd, so clamp.
+  const fleetShare = counts
+    ? Math.min(100, roundPercent(counts.vehiclesWithAC, AC_FLEET_TOTAL))
+    : null;
+
   // DPP publishes a verified AC-equipped fleet count for trams only, so the
-  // "ze všech N klimatizovaných" clause has nothing to cite in bus mode.
+  // "ze všech N klimatizovaných" sentence has nothing to cite in bus mode.
+  // Standalone sentence: gluing it into the first one with "a" would make
+  // "To je" (the without-AC figure) look like the subject of the AC count.
   const fleetClause =
     mode === "tram" ? (
       <>
-        {" "}
-        a{" "}
+        . Zároveň je {scopeLabel}{" "}
         {counts ? (
           showPercentages ? (
             <span className={`font-black ${emphasisColor}`}>
-              <span className="font-mono">
-                {roundPercent(counts.vehiclesWithAC, AC_FLEET_TOTAL)}
-              </span>{" "}
-              <span className="font-mono">%</span>
+              <span className="font-mono">{fleetShare}</span> <span className="font-mono">%</span>
             </span>
           ) : (
             <span className={`font-black ${emphasisColor}`}>
@@ -84,22 +90,25 @@ export function VehicleSummary({
                 <span className="font-mono">{percentWithoutAC(counts)}</span>{" "}
                 <span className="font-mono">%</span>
               </span>{" "}
-              z {counts.totalVehicles}
+              {/* "z celkových N" sidesteps the z/ze vocalization minefield
+                  ("ze 120", "z 55") that a bare "z N" steps on. */}
+              z celkových {counts.totalVehicles}
             </>
           ) : (
             <>
               <span className={`font-black ${emphasisColor}`}>
                 <span className="font-mono">{counts.vehiclesWithoutAC}</span>
               </span>{" "}
-              z {counts.totalVehicles}
+              z celkových {counts.totalVehicles}
             </>
           )}{" "}
-          {genitive}, které jsou právě {scopeLabel}
+          {nounForms.many}, které jsou právě {scopeLabel}
           {fleetClause}
         </>
       ) : (
         <>
-          To je <SkeletonBlock /> z <SkeletonBlock /> {genitive}, které jsou právě {scopeLabel}
+          To je <SkeletonBlock /> z celkových <SkeletonBlock /> {nounForms.many}, které jsou právě{" "}
+          {scopeLabel}
           {fleetClause}
         </>
       )}
