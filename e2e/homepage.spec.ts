@@ -18,14 +18,14 @@ test.describe("happy path", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Praze");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("bez klimatizace");
-    await expect(page.getByText(/28\s°C/)).toBeVisible();
+    await expect(page.getByText(/28\s?°C/)).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
     await expect(page.getByText(/147/)).toBeVisible();
   });
 
   test("tap-to-toggle flips between counts and percentages", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/28\s°C/)).toBeVisible();
+    await expect(page.getByText(/28\s?°C/)).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
 
     await page.getByRole("heading", { level: 1 }).click();

@@ -31,8 +31,9 @@ export function VehicleHeadline({
           V <span className="font-black">Praze</span> <span className="font-thin">je</span>{" "}
           <span className={`font-black font-mono ${getTemperatureColor(temperature)}`}>
             {temperature}
-            {/* narrow no-break space — a full space gapes in the mono font */}
-            {"\u202F"}°C
+            {/* Thin gap via margin — in the mono font every space character
+                is a full cell wide, so a thin-space char can't render thin. */}
+            <span className="ml-[0.08em]">°C</span>
           </span>{" "}
           {getTemperatureEmoji(temperature)}
           <br />
