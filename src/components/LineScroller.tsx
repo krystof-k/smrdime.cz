@@ -56,10 +56,10 @@ export function LineScroller({
         style={{ scrollbarWidth: "thin" }}
       >
         <search
-          className={`relative flex h-16 shrink-0 items-center gap-2 overflow-hidden rounded-2xl p-3 backdrop-blur-sm transition-[width] duration-200 ${
+          className={`relative flex h-16 shrink-0 items-center gap-2 overflow-hidden rounded-2xl border border-gray-300/80 p-3 backdrop-blur-sm transition-[width] duration-200 dark:border-gray-600/60 ${
             searchOpen
               ? "w-40 bg-white/70 dark:bg-gray-800/70"
-              : "w-14 bg-white/50 hover:bg-white/80 dark:bg-gray-800/50 dark:hover:bg-gray-800/80"
+              : "w-16 bg-white/50 hover:bg-white/80 dark:bg-gray-800/50 dark:hover:bg-gray-800/80"
           }`}
         >
           <button
@@ -75,9 +75,9 @@ export function LineScroller({
             className={
               searchOpen
                 ? "shrink-0 cursor-pointer text-2xl"
-                : // Cover the whole card so a click anywhere on it opens the search,
-                  // keeping the icon at the same spot as the expanded state.
-                  "absolute inset-0 flex cursor-pointer items-center pl-3 text-2xl"
+                : // Cover the whole square so a click anywhere on it opens the
+                  // search, with the magnifier centered while collapsed.
+                  "absolute inset-0 flex cursor-pointer items-center justify-center text-2xl"
             }
           >
             🔍
