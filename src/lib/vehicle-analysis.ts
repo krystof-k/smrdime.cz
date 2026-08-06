@@ -4,6 +4,8 @@ import type { VehicleMode } from "./vehicle-modes.ts";
 export interface LineInfo {
   lineNumber: string;
   routeId: string;
+  /** Trolleybus lines live in the bus view but get their own 🚎 on the card. */
+  isTrolleybus: boolean;
   totalVehicles: number;
   vehiclesWithAC: number;
   vehiclesWithoutAC: number;
@@ -60,11 +62,13 @@ function countByAC(vehicles: VehiclePosition[]): {
   let withAC = 0;
   let withoutAC = 0;
   for (const vehicle of vehicles) {
-    // air_conditioned is nullable upstream; unknown deliberately counts as
-    // "without AC" — a vehicle is smelly until the feed proves otherwise.
-    // (Live share of unknowns 2026-08-06: 0 % trams, ~0.3 % city buses.)
-    if (vehicle.trip.air_conditioned) withAC += 1;
-    else withoutAC += 1;
+    // Golemio docs: null means "the information is not available", not "no
+    // AC" — so unknowns land in neither bucket and the headline only counts
+    // vehicles known to lack AC. They still count into the totals (they are
+    // on the road). Live share of unknowns 2026-08-06: 0 % trams, ~0.3 %
+    // city buses (a lone depot bus substituting on a trolleybus line).
+    if (vehicle.trip.air_conditioned === true) withAC += 1;
+    else if (vehicle.trip.air_conditioned === false) withoutAC += 1;
   }
   return { withAC, withoutAC };
 }
@@ -84,6 +88,7 @@ function buildCounts(routes: Route[], vehicles: VehiclePosition[]): VehicleCount
     return {
       lineNumber: route.route_short_name,
       routeId: route.route_id,
+      isTrolleybus: route.route_type === TROLLEYBUS_ROUTE_TYPE,
       totalVehicles: lineVehicles.length,
       vehiclesWithAC: withAC,
       vehiclesWithoutAC: withoutAC,

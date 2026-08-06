@@ -4,6 +4,7 @@ export const sampleTramLineDetails = [
   {
     lineNumber: "9",
     routeId: "9",
+    isTrolleybus: false,
     totalVehicles: 20,
     vehiclesWithAC: 5,
     vehiclesWithoutAC: 15,
@@ -11,6 +12,7 @@ export const sampleTramLineDetails = [
   {
     lineNumber: "22",
     routeId: "22",
+    isTrolleybus: false,
     totalVehicles: 15,
     vehiclesWithAC: 12,
     vehiclesWithoutAC: 3,
@@ -37,6 +39,7 @@ export const sampleBusLineDetails = [
   {
     lineNumber: "119",
     routeId: "119",
+    isTrolleybus: false,
     totalVehicles: 20,
     vehiclesWithAC: 3,
     vehiclesWithoutAC: 17,
@@ -44,9 +47,18 @@ export const sampleBusLineDetails = [
   {
     lineNumber: "213",
     routeId: "213",
+    isTrolleybus: false,
     totalVehicles: 15,
     vehiclesWithAC: 11,
     vehiclesWithoutAC: 4,
+  },
+  {
+    lineNumber: "59",
+    routeId: "59",
+    isTrolleybus: true,
+    totalVehicles: 7,
+    vehiclesWithAC: 7,
+    vehiclesWithoutAC: 0,
   },
 ];
 

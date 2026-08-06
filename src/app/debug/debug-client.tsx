@@ -149,6 +149,7 @@ const LINE_NUMBERS: Record<VehicleMode, string[]> = {
     "92",
   ],
   bus: [
+    "59",
     "100",
     "112",
     "119",
@@ -172,6 +173,8 @@ const LINE_NUMBERS: Record<VehicleMode, string[]> = {
     "911",
   ],
 };
+
+const TROLLEYBUS_LINES = new Set(["51", "52", "53", "58", "59"]);
 
 function generateLineDetails(
   lineNumbers: string[],
@@ -202,6 +205,7 @@ function generateLineDetails(
     lines.push({
       lineNumber: lineNumbers[i],
       routeId: `route-${lineNumbers[i]}`,
+      isTrolleybus: TROLLEYBUS_LINES.has(lineNumbers[i]),
       totalVehicles: total,
       vehiclesWithAC: withAC,
       vehiclesWithoutAC: total - withAC,

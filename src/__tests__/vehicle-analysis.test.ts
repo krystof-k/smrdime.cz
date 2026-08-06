@@ -17,7 +17,7 @@ let tripCounter = 0;
 
 function vehicle(
   routeId: string,
-  acStatus: boolean,
+  acStatus: boolean | null,
   opts: { reg?: number; tracking?: boolean; start?: string; routeType?: number } = {},
 ): VehiclePosition {
   tripCounter += 1;
@@ -206,6 +206,36 @@ describe("analyze — bus mode", () => {
       "bus",
     );
     assert.equal(result.onTrack.totalVehicles, 1);
+  });
+
+  it("flags trolleybus lines so the UI can show them with their own emoji", () => {
+    const result = analyze(
+      [route("59", "59", 11), route("119", "119", 3)],
+      [vehicle("59", true, { routeType: 11 }), vehicle("119", true, { routeType: 3 })],
+      FIXED_DATE,
+      "bus",
+    );
+    const byLine = new Map(result.onTrack.lineDetails.map((line) => [line.lineNumber, line]));
+    assert.equal(byLine.get("59")?.isTrolleybus, true);
+    assert.equal(byLine.get("119")?.isTrolleybus, false);
+  });
+
+  it("counts unknown AC status into totals but into neither AC bucket", () => {
+    // Golemio docs: null = "the information is not available" — claiming
+    // such a vehicle rides without AC would be made up.
+    const result = analyze(
+      [route("119", "119", 3)],
+      [
+        vehicle("119", true, { routeType: 3 }),
+        vehicle("119", false, { routeType: 3 }),
+        vehicle("119", null, { routeType: 3 }),
+      ],
+      FIXED_DATE,
+      "bus",
+    );
+    assert.equal(result.onTrack.totalVehicles, 3);
+    assert.equal(result.onTrack.vehiclesWithAC, 1);
+    assert.equal(result.onTrack.vehiclesWithoutAC, 1);
   });
 
   it("throws when the feed has no tracked city buses", () => {

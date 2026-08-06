@@ -26,7 +26,11 @@ export interface VehiclePosition {
       route_type: number;
       trip_id: string;
     };
-    /** Nullable upstream — null means the operator didn't report AC status. */
+    /**
+     * Golemio docs: "Determines whether the vehicle has air conditioning.
+     * If null, the information is not available or the vehicle's
+     * registration number is not known."
+     */
     air_conditioned: boolean | null;
     /** Nullable upstream — rare operators don't report fleet numbers. */
     vehicle_registration_number: number | null;

@@ -14,7 +14,8 @@ type LineCardProps = {
 export function LineCard({ mode, line, temperature, isDark, showPercentages }: LineCardProps) {
   const acPercentage = roundPercent(line.vehiclesWithAC, line.totalVehicles);
   const background = getACBackgroundColor(acPercentage, temperature, isDark);
-  const emoji = getACEmoji(acPercentage, temperature, VEHICLE_MODES[mode].emoji);
+  const coolEmoji = line.isTrolleybus ? "🚎" : VEHICLE_MODES[mode].emoji;
+  const emoji = getACEmoji(acPercentage, temperature, coolEmoji);
   const ratio = showPercentages
     ? `${acPercentage}\u00A0%`
     : `${line.vehiclesWithAC}/${line.totalVehicles}`;

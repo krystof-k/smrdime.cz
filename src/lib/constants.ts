@@ -16,6 +16,11 @@ export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
  * (`DPP_AC_FAQ_URL`): "K 25. červnu 2026 má DPP ve vozovém parku 73,12 %
  * plně klimatizovaných autobusů." DPP gives no absolute count for buses, so
  * the bus summary cites this share instead of a "ze všech N" clause.
+ *
+ * The figure covers DPP's own fleet only — city lines are also run by
+ * contracted PID operators (live feed 2026-08-06: ~85 % of city-bus records
+ * are DPP; the rest ARRIVA CITY, ABOUT ME, ČSAD SČ, STENBUS and others), so
+ * the popover attributes it explicitly to DPP's fleet.
  * Last verified: 2026-08-06.
  */
 export const AC_BUS_FLEET_SHARE = "73,12";

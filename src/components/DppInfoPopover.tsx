@@ -127,7 +127,7 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
               </>
             ) : (
               <>
-                Podle{" "}
+                Městské linky jezdí kromě DPP i smluvní dopravci PID. Podle{" "}
                 <a
                   href={DPP_AC_FAQ_URL}
                   target="_blank"
@@ -141,7 +141,7 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
                   <span className="font-mono">{AC_BUS_FLEET_SHARE}</span>{" "}
                   <span className="font-mono">%</span>
                 </span>{" "}
-                autobusů vozového parku.
+                autobusů jeho vozového parku.
               </>
             )}
           </span>

@@ -25,13 +25,25 @@ test.describe("bus page", () => {
     await expect(page.getByText(/ze všech/)).toHaveCount(0);
   });
 
-  test("dpp.cz popover cites the bus fleet AC share", async ({ page }) => {
+  test("dpp.cz popover cites the DPP fleet AC share and mentions contracted operators", async ({
+    page,
+  }) => {
     await page.goto("/autobusy");
     await page.getByRole("button", { name: "dpp.cz" }).click();
     const tooltip = page.getByRole("tooltip");
     await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("smluvní dopravci PID");
     await expect(tooltip).toContainText("73,12");
-    await expect(tooltip).toContainText("vozového parku");
+    await expect(tooltip).toContainText("jeho vozového parku");
+  });
+
+  test("trolleybus lines get their own emoji on the line card in cool weather", async ({
+    page,
+  }) => {
+    await mockWeather(page, { temperature: 15 });
+    await page.goto("/autobusy");
+    await expect(page.getByText("🚎")).toBeVisible();
+    await expect(page.getByText("7/7")).toBeVisible();
   });
 
   test("layover toggle uses bus wording", async ({ page }) => {

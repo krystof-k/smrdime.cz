@@ -7,6 +7,7 @@ function line(lineNumber: string): LineInfo {
   return {
     lineNumber,
     routeId: `L${lineNumber}`,
+    isTrolleybus: false,
     totalVehicles: 10,
     vehiclesWithAC: 5,
     vehiclesWithoutAC: 5,
