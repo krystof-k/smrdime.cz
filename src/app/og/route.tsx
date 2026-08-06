@@ -1,6 +1,7 @@
 import { WEATHER_API_URL } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { OG_EMOJI } from "@/lib/og-emoji";
+import { OG_FONTS } from "@/lib/og-fonts";
 import { analyzeACStatus } from "@/lib/vehicle-analysis";
 import { VEHICLE_MODES, vehicleNoun } from "@/lib/vehicle-modes";
 
@@ -8,7 +9,6 @@ import { VEHICLE_MODES, vehicleNoun } from "@/lib/vehicle-modes";
 // worker, not when Next evaluates this module in Node at build time. Importing
 // it dynamically inside the handler keeps the WASM out of module evaluation so
 // `next build`'s page-data collection doesn't try (and fail) to load it.
-type WorkersOg = typeof import("workers-og");
 
 // Image generation fetches live data and renders WASM at request time, so it
 // must never be prerendered at build (no network / no GOLEMIO_API_KEY there).
@@ -21,10 +21,12 @@ const SCALE = 2;
 const WIDTH = 1200 * SCALE;
 const HEIGHT = 630 * SCALE;
 
-// Match /api/tram's data cadence (~30s) so direct hits stay fresh while still
-// deduping the Golemio call behind the edge cache. The card also stamps its own
-// capture time, so a platform that caches the unfurl can't silently go stale.
-const CACHE_CONTROL = "public, s-maxage=30, stale-while-revalidate=60, stale-if-error=300";
+// Every og:image URL is unique (30s bucket on page scrapes, share token on
+// shared links), so a long TTL never serves stale numbers to a *new* URL —
+// it just keeps an already-rendered card around so the share-click prewarm
+// survives until the platform's scraper arrives, and repeat scrapes of one
+// share URL stay consistent. The card stamps its own capture time.
+const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400, stale-if-error=3600";
 
 // When tram data is unavailable, fail the render instead of claiming "0 trams
 // without AC" — platforms keep the previous unfurl on error, and stale-if-error
@@ -56,33 +58,22 @@ const PAD_X = 72 * SCALE;
 
 type Font = { name: string; data: ArrayBuffer; weight: 100 | 400 | 700 | 900; style: "normal" };
 
-// Geist lives on Google Fonts; loadGoogleFont returns a Satori-ready buffer.
-// Cache the fetch per isolate — the fonts never change and each fetch is a
-// network round trip we don't want on every cached-miss render.
-let fontsPromise: Promise<Font[]> | null = null;
+// Subset Geist faces baked into the bundle (see scripts/generate-og-fonts.mjs)
+// — a cold isolate previously spent five Google Fonts round trips here, which
+// was the main reason OG scrapers timed out on cold renders. Decoded once per
+// isolate.
+let fontsCache: Font[] | null = null;
 
-function loadFonts(loadGoogleFont: WorkersOg["loadGoogleFont"]): Promise<Font[]> {
-  if (!fontsPromise) {
-    fontsPromise = Promise.all([
-      loadGoogleFont({ family: "Geist", weight: 100 }),
-      loadGoogleFont({ family: "Geist", weight: 400 }),
-      loadGoogleFont({ family: "Geist", weight: 900 }),
-      loadGoogleFont({ family: "Geist Mono", weight: 400 }),
-      loadGoogleFont({ family: "Geist Mono", weight: 900 }),
-    ]).then(([thin, regular, black, mono, monoBlack]) => [
-      { name: "Geist", data: thin, weight: 100, style: "normal" },
-      { name: "Geist", data: regular, weight: 400, style: "normal" },
-      { name: "Geist", data: black, weight: 900, style: "normal" },
-      { name: "Geist Mono", data: mono, weight: 400, style: "normal" },
-      { name: "Geist Mono", data: monoBlack, weight: 900, style: "normal" },
-    ]);
-    // Don't cache a rejection — a transient font-fetch failure would otherwise
-    // wedge every later render in this isolate. Reset so the next request retries.
-    fontsPromise.catch(() => {
-      fontsPromise = null;
-    });
+function getFonts(): Font[] {
+  if (!fontsCache) {
+    fontsCache = OG_FONTS.map(({ name, weight, base64 }) => ({
+      name,
+      weight,
+      style: "normal" as const,
+      data: Uint8Array.from(atob(base64), (char) => char.charCodeAt(0)).buffer as ArrayBuffer,
+    }));
   }
-  return fontsPromise;
+  return fontsCache;
 }
 
 async function fetchTemperature(): Promise<number | null> {
@@ -150,15 +141,15 @@ function emoji(str: string) {
 }
 
 export async function GET(request: Request) {
-  const { ImageResponse, loadGoogleFont } = await import("workers-og");
+  const { ImageResponse } = await import("workers-og");
 
   const mode = new URL(request.url).searchParams.get("v") === "bus" ? "bus" : "tram";
   const { emoji: vehicleEmoji } = VEHICLE_MODES[mode];
 
-  const [analysis, temperature, fonts] = await Promise.all([
+  const fonts = getFonts();
+  const [analysis, temperature] = await Promise.all([
     analyzeACStatus(mode).catch(() => null),
     fetchTemperature(),
-    loadFonts(loadGoogleFont),
   ]);
 
   if (!analysis) {
