@@ -1,59 +1,12 @@
 import { expect, test } from "@playwright/test";
-
-const sampleLineDetails = [
-  {
-    lineNumber: "9",
-    routeId: "9",
-    totalVehicles: 20,
-    vehiclesWithAC: 5,
-    vehiclesWithoutAC: 15,
-  },
-  {
-    lineNumber: "22",
-    routeId: "22",
-    totalVehicles: 15,
-    vehiclesWithAC: 12,
-    vehiclesWithoutAC: 3,
-  },
-];
-
-const sampleTramStatus = {
-  onTrack: {
-    totalTrams: 120,
-    tramsWithAC: 40,
-    tramsWithoutAC: 80,
-    lineDetails: sampleLineDetails,
-  },
-  inService: {
-    totalTrams: 150,
-    tramsWithAC: 50,
-    tramsWithoutAC: 100,
-    lineDetails: sampleLineDetails,
-  },
-  lastUpdated: new Date("2026-04-19T12:00:00Z").toISOString(),
-};
-
-const sampleWeather = { temperature: 28 };
-
-async function mockTram(page: import("@playwright/test").Page, payload: unknown, status = 200) {
-  await page.route("**/api/tram", (route) =>
-    route.fulfill({
-      status,
-      contentType: "application/json",
-      body: JSON.stringify(payload),
-    }),
-  );
-}
-
-async function mockWeather(page: import("@playwright/test").Page, payload: unknown, status = 200) {
-  await page.route("**/api/weather", (route) =>
-    route.fulfill({
-      status,
-      contentType: "application/json",
-      body: JSON.stringify(payload),
-    }),
-  );
-}
+import {
+  mockBus,
+  mockTram,
+  mockWeather,
+  sampleBusStatus,
+  sampleTramStatus,
+  sampleWeather,
+} from "./mocks";
 
 test.describe("happy path", () => {
   test.beforeEach(async ({ page }) => {
@@ -65,14 +18,14 @@ test.describe("happy path", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Praze");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("bez klimatizace");
-    await expect(page.getByText("28°C")).toBeVisible();
+    await expect(page.getByText(/28\s?°C/)).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
     await expect(page.getByText(/147/)).toBeVisible();
   });
 
   test("tap-to-toggle flips between counts and percentages", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("28°C")).toBeVisible();
+    await expect(page.getByText(/28\s?°C/)).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
 
     await page.getByRole("heading", { level: 1 }).click();
@@ -137,7 +90,9 @@ test.describe("happy path", () => {
     await expect(search).toBeVisible();
 
     await search.fill("42");
-    await expect(page.getByText("Linka „42“ teď nejspíš nejezdí.")).toBeVisible();
+    await expect(
+      page.getByText("Linka „42“ teď nejspíš nejezdí, nebo ji nesledujeme."),
+    ).toBeVisible();
 
     await search.press("Escape");
     await expect(search).not.toBeVisible();
@@ -171,6 +126,23 @@ test.describe("happy path", () => {
     await expect(
       page.getByRole("button", { name: /Obnovit automatické aktualizace/ }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("mode switch link navigates to buses and back", async ({ page }) => {
+    await mockBus(page, sampleBusStatus);
+
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("tramvají");
+
+    await page.getByRole("link", { name: /A co autobusy\?/ }).click();
+    await expect(page).toHaveURL("/autobusy");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("autobusů");
+    await expect(page.getByText("90").first()).toBeVisible();
+
+    await page.getByRole("link", { name: /A co tramvaje\?/ }).click();
+    await expect(page).toHaveURL("/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("tramvají");
+    await expect(page.getByText("80").first()).toBeVisible();
   });
 });
 

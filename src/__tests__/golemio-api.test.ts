@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { createTramRoutesLoader, getVehiclePositions, type Route } from "../lib/golemio-api.ts";
+import { createRoutesLoader, getVehiclePositions, type Route } from "../lib/golemio-api.ts";
 
 const originalFetch = globalThis.fetch;
 const fetchCalls: Array<[string, RequestInit | undefined]> = [];
@@ -64,10 +64,10 @@ function tramRoute(id: string): Route {
   };
 }
 
-describe("tram routes loader", () => {
+describe("routes loader", () => {
   it("requests /v2/gtfs/routes with X-Access-Token header", async () => {
     queueJson([]);
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader();
     await loader();
 
     const [url, init] = fetchCalls[0];
@@ -77,7 +77,7 @@ describe("tram routes loader", () => {
     assert.equal(headers.Accept, "application/json");
   });
 
-  it("filters out non-tram routes (route_type !== 0)", async () => {
+  it("returns the full PID list — mode filtering is the analysis layer's job", async () => {
     queueJson([
       tramRoute("1"),
       {
@@ -90,18 +90,18 @@ describe("tram routes loader", () => {
       tramRoute("22"),
     ]);
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader();
     const routes = await loader();
     assert.deepEqual(
       routes.map((r) => r.route_id),
-      ["1", "22"],
+      ["1", "B", "22"],
     );
   });
 
   it("throws on 5xx", async () => {
     queueStatus(500, "Server Error");
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader();
     await assert.rejects(loader(), /API request failed: 500 Server Error/);
     assert.equal(fetchCalls.length, 1);
   });
@@ -113,7 +113,7 @@ describe("tram routes loader", () => {
     // ttl 0 forces the second call to re-enter the fetch path; stale retry
     // window of 1 ms lets the third call re-enter it again so we can verify
     // both the fallback payload and that retries are actually happening.
-    const loader = createTramRoutesLoader(0, 1);
+    const loader = createRoutesLoader(0, 1);
 
     const first = await loader();
     assert.deepEqual(
@@ -134,7 +134,7 @@ describe("tram routes loader", () => {
   it("caches routes across calls within one loader instance", async () => {
     queueJson([tramRoute("1")]);
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader();
     await loader();
     await loader();
     await loader();
@@ -146,7 +146,7 @@ describe("tram routes loader", () => {
     queueJson([tramRoute("1")]);
     queueJson([tramRoute("2")]);
 
-    const loader = createTramRoutesLoader(0);
+    const loader = createRoutesLoader(0);
     await loader();
     await loader();
 
@@ -171,7 +171,7 @@ describe("tram routes loader", () => {
         }),
     );
 
-    const loader = createTramRoutesLoader();
+    const loader = createRoutesLoader();
     await assert.rejects(loader(), { name: "AbortError" });
   });
 
@@ -179,7 +179,7 @@ describe("tram routes loader", () => {
     const saved = process.env.GOLEMIO_API_KEY;
     delete process.env.GOLEMIO_API_KEY;
     try {
-      const loader = createTramRoutesLoader();
+      const loader = createRoutesLoader();
       await assert.rejects(loader(), /GOLEMIO_API_KEY is not set/);
       assert.equal(fetchCalls.length, 0);
     } finally {

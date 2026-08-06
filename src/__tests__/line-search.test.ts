@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { filterLinesByQuery } from "../lib/line-search.ts";
-import type { TramLineInfo } from "../lib/tram-analysis.ts";
+import type { LineInfo } from "../lib/vehicle-analysis.ts";
 
-function line(lineNumber: string): TramLineInfo {
+function line(lineNumber: string): LineInfo {
   return {
     lineNumber,
     routeId: `L${lineNumber}`,
+    isTrolleybus: false,
     totalVehicles: 10,
     vehiclesWithAC: 5,
     vehiclesWithoutAC: 5,

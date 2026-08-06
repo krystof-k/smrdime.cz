@@ -10,7 +10,7 @@ function FooterLink({ href, hoverColor, children }: FooterLinkProps) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`rounded px-1 font-mono text-gray-700 underline decoration-dotted transition-all duration-200 hover:decoration-solid dark:text-gray-300 ${hoverColor}`}
+      className={`-mx-0.5 rounded px-0.5 font-mono text-gray-700 underline decoration-dotted transition-all duration-200 hover:decoration-solid dark:text-gray-300 ${hoverColor}`}
     >
       {children}
     </a>

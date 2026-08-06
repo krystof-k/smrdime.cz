@@ -11,7 +11,7 @@ const IMG_DIR = fileURLToPath(
   new URL("../node_modules/emoji-datasource-apple/img/apple/64/", import.meta.url),
 );
 
-// Every emoji the card can show: the temperature-tier reactions plus the tram.
+// Every emoji the card can show: the temperature-tier reactions plus the vehicles.
 const EMOJI = [
   "🔥",
   "💀",
@@ -31,6 +31,7 @@ const EMOJI = [
   "🤬",
   "🖕",
   "🚋",
+  "🚌",
 ];
 
 function codepoints(emoji) {

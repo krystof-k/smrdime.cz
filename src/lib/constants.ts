@@ -1,7 +1,8 @@
 /**
  * AC-equipped tram subfleets. Source: DPP FAQ (see `DPP_AC_FAQ_URL`) and the
- * 52T rolling stock page (`DPP_52T_URL`). Last verified: 2026-04-19. Update
- * whenever DPP publishes new delivery milestones.
+ * 52T rolling stock page (`DPP_52T_URL`). Last verified: 2026-08-06 — the FAQ
+ * still states 20 × 52T "k 31. prosinci 2025" and expects +20 during 2026,
+ * so re-check after DPP announces new deliveries.
  *
  *   - Škoda 15T: second delivery
  *   - Škoda 52T: delivered by 2025-12-18; 71 ordered in total, rolling out
@@ -10,6 +11,21 @@
 export const AC_FLEET_15T = 127;
 export const AC_FLEET_52T = 20;
 export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
+
+/**
+ * Share of DPP's bus fleet with full AC, as stated on the DPP FAQ
+ * (`DPP_AC_FAQ_URL`): "K 25. červnu 2026 má DPP ve vozovém parku 73,12 %
+ * plně klimatizovaných autobusů." DPP gives no absolute count for buses, so
+ * the bus summary cites this share instead of a "ze všech N" clause.
+ *
+ * The figure covers DPP's own fleet only — city lines are also run by
+ * contracted PID operators (live feed 2026-08-06: ~85 % of city-bus records
+ * are DPP; the rest ARRIVA CITY, ABOUT ME, ČSAD SČ, STENBUS and others), so
+ * the popover attributes it explicitly to DPP's fleet.
+ * Last verified: 2026-08-06.
+ */
+export const AC_BUS_FLEET_SHARE = "73,12";
+export const AC_BUS_FLEET_SHARE_DATE = "25. červnu 2026";
 
 // Edge cache on /api/tram dedupes globally at 30 s; client polling more
 // frequently still sees fresh-ish data cheaply via cache hits.

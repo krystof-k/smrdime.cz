@@ -8,6 +8,10 @@ describe("buildShareUrl", () => {
     assert.equal(buildShareUrl(1_000_000), `https://www.smrdime.cz/?s=${(1_000_000).toString(36)}`);
   });
 
+  it("shares the given page, so bus links land on /autobusy", () => {
+    assert.equal(buildShareUrl(0, "/autobusy"), "https://www.smrdime.cz/autobusy?s=0");
+  });
+
   it("gives a distinct URL for distinct tokens, so each share looks new", () => {
     assert.notEqual(buildShareUrl(1), buildShareUrl(2));
   });

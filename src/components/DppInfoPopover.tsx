@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef } from "react";
-import { AC_FLEET_15T, AC_FLEET_52T, DPP_52T_URL, DPP_AC_FAQ_URL } from "@/lib/constants";
+import {
+  AC_BUS_FLEET_SHARE,
+  AC_BUS_FLEET_SHARE_DATE,
+  AC_FLEET_15T,
+  AC_FLEET_52T,
+  DPP_52T_URL,
+  DPP_AC_FAQ_URL,
+} from "@/lib/constants";
+import type { VehicleMode } from "@/lib/vehicle-modes";
 
 const CLOSE_DELAY_MS = 200;
 
@@ -11,7 +19,7 @@ const CLOSE_DELAY_MS = 200;
  * anchors to a DOM ancestor. We pin it to the trigger button with fixed
  * coordinates computed from getBoundingClientRect, refreshed on scroll/resize.
  */
-export function DppInfoPopover() {
+export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLSpanElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,7 +69,7 @@ export function DppInfoPopover() {
   }, [updatePosition]);
 
   const linkClass =
-    "rounded px-1 font-mono underline decoration-dotted transition-all hover:decoration-solid hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300";
+    "-mx-0.5 rounded px-0.5 font-mono underline decoration-dotted transition-all hover:decoration-solid hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300";
 
   return (
     <span className="inline-block">
@@ -74,7 +82,7 @@ export function DppInfoPopover() {
         onClick={openNow}
         onMouseEnter={openNow}
         onMouseLeave={scheduleClose}
-        className="rounded px-1 font-mono text-gray-500 text-xs underline decoration-dotted transition-colors hover:text-gray-700 hover:decoration-solid dark:text-gray-400 dark:hover:text-gray-200"
+        className="-mx-0.5 rounded px-0.5 font-mono text-gray-500 text-xs underline decoration-dotted transition-colors hover:text-gray-700 hover:decoration-solid dark:text-gray-400 dark:hover:text-gray-200"
       >
         dpp.cz
       </button>
@@ -93,22 +101,50 @@ export function DppInfoPopover() {
       >
         <span className="block w-72 px-4 pt-4 pb-2">
           <span className="block rounded-lg border border-gray-200 bg-white p-3 text-left font-normal text-gray-700 text-sm leading-normal shadow-2xl dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-            Podle{" "}
-            <a
-              href={DPP_AC_FAQ_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-            >
-              DPP
-            </a>{" "}
-            jezdí v Praze <span className="font-mono">{AC_FLEET_15T}</span> klimatizovaných tramvají{" "}
-            <span className="whitespace-nowrap">Škoda 15T</span> (druhá dodávka) a všech{" "}
-            <span className="font-mono">{AC_FLEET_52T}</span> dosud dodaných tramvají{" "}
-            <a href={DPP_52T_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
-              Škoda 52T
-            </a>
-            .
+            {mode === "tram" ? (
+              <>
+                Podle{" "}
+                <a
+                  href={DPP_AC_FAQ_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  DPP
+                </a>{" "}
+                je v Praze <span className="font-mono">{AC_FLEET_15T}</span> klimatizovaných
+                tramvají <span className="whitespace-nowrap">Škoda 15T</span> (druhá dodávka) a{" "}
+                <span className="font-mono">{AC_FLEET_52T}</span> tramvají{" "}
+                <a
+                  href={DPP_52T_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  Škoda 52T
+                </a>{" "}
+                dodaných do konce roku 2025.
+              </>
+            ) : (
+              <>
+                Počítáme jen městské linky PID včetně trolejbusů, příměstské ne. Kromě DPP je jezdí
+                i smluvní dopravci PID. Podle{" "}
+                <a
+                  href={DPP_AC_FAQ_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  DPP
+                </a>{" "}
+                bylo k {AC_BUS_FLEET_SHARE_DATE} plně klimatizovaných{" "}
+                <span className="whitespace-nowrap">
+                  <span className="font-mono">{AC_BUS_FLEET_SHARE}</span>{" "}
+                  <span className="font-mono">%</span>
+                </span>{" "}
+                autobusů jeho vozového parku.
+              </>
+            )}
           </span>
         </span>
       </span>

@@ -1,14 +1,16 @@
 "use client";
 
 import { cloneElement, useEffect, useId, useState } from "react";
-import { TramStatusView } from "@/components/TramStatusView";
+import { VehicleStatusView } from "@/components/VehicleStatusView";
 import { AC_LEVELS, COOL_CUTOFF_C, TEMPERATURE_TIERS } from "@/lib/display";
-import type { TramAnalysisResult, TramLineInfo } from "@/lib/tram-analysis";
+import type { LineInfo, VehicleAnalysisResult } from "@/lib/vehicle-analysis";
+import type { VehicleMode } from "@/lib/vehicle-modes";
 
 type DebugState = {
+  mode: VehicleMode;
   temperature: number | null;
-  totalTrams: number;
-  tramsWithAC: number;
+  totalVehicles: number;
+  vehiclesWithAC: number;
   lineCount: number;
   loading: boolean;
   error: string;
@@ -21,9 +23,10 @@ type Preset = {
 };
 
 const DEFAULT_STATE: DebugState = {
+  mode: "tram",
   temperature: 28,
-  totalTrams: 120,
-  tramsWithAC: 40,
+  totalVehicles: 120,
+  vehiclesWithAC: 40,
   lineCount: 9,
   loading: false,
   error: "",
@@ -36,8 +39,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 40,
-      totalTrams: 150,
-      tramsWithAC: 15,
+      totalVehicles: 150,
+      vehiclesWithAC: 15,
     },
   },
   {
@@ -45,8 +48,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 32,
-      totalTrams: 140,
-      tramsWithAC: 40,
+      totalVehicles: 140,
+      vehiclesWithAC: 40,
     },
   },
   {
@@ -54,8 +57,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 25,
-      totalTrams: 120,
-      tramsWithAC: 60,
+      totalVehicles: 120,
+      vehiclesWithAC: 60,
     },
   },
   {
@@ -63,8 +66,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 18,
-      totalTrams: 100,
-      tramsWithAC: 50,
+      totalVehicles: 100,
+      vehiclesWithAC: 50,
     },
   },
   {
@@ -72,8 +75,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 8,
-      totalTrams: 90,
-      tramsWithAC: 45,
+      totalVehicles: 90,
+      vehiclesWithAC: 45,
     },
   },
   {
@@ -81,8 +84,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: -5,
-      totalTrams: 80,
-      tramsWithAC: 40,
+      totalVehicles: 80,
+      vehiclesWithAC: 40,
     },
   },
   {
@@ -90,8 +93,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 30,
-      totalTrams: 120,
-      tramsWithAC: 0,
+      totalVehicles: 120,
+      vehiclesWithAC: 0,
     },
   },
   {
@@ -99,8 +102,8 @@ const PRESETS: Preset[] = [
     state: {
       ...DEFAULT_STATE,
       temperature: 30,
-      totalTrams: 100,
-      tramsWithAC: 100,
+      totalVehicles: 100,
+      vehiclesWithAC: 100,
     },
   },
   {
@@ -109,11 +112,11 @@ const PRESETS: Preset[] = [
   },
   {
     label: "Error",
-    state: { ...DEFAULT_STATE, error: "Failed to fetch tram status" },
+    state: { ...DEFAULT_STATE, error: "Failed to fetch vehicle status" },
   },
   {
-    label: "Prázdno (0 tramvají)",
-    state: { ...DEFAULT_STATE, totalTrams: 0, tramsWithAC: 0 },
+    label: "Prázdno (0 vozidel)",
+    state: { ...DEFAULT_STATE, totalVehicles: 0, vehiclesWithAC: 0 },
   },
   {
     label: "Bez počasí",
@@ -121,42 +124,71 @@ const PRESETS: Preset[] = [
   },
 ];
 
-const LINE_NUMBERS = [
-  "1",
-  "2",
-  "3",
-  "5",
-  "6",
-  "7",
-  "9",
-  "11",
-  "12",
-  "13",
-  "14",
-  "15",
-  "16",
-  "17",
-  "18",
-  "20",
-  "22",
-  "24",
-  "25",
-  "26",
-  "92",
-];
+const LINE_NUMBERS: Record<VehicleMode, string[]> = {
+  tram: [
+    "1",
+    "2",
+    "3",
+    "5",
+    "6",
+    "7",
+    "9",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "20",
+    "22",
+    "24",
+    "25",
+    "26",
+    "92",
+  ],
+  bus: [
+    "59",
+    "100",
+    "112",
+    "119",
+    "125",
+    "131",
+    "136",
+    "140",
+    "147",
+    "162",
+    "174",
+    "177",
+    "180",
+    "191",
+    "200",
+    "207",
+    "213",
+    "215",
+    "250",
+    "296",
+    "907",
+    "911",
+  ],
+};
+
+const TROLLEYBUS_LINES = new Set(["51", "52", "53", "58", "59"]);
 
 function generateLineDetails(
-  totalTrams: number,
-  tramsWithAC: number,
+  lineNumbers: string[],
+  totalVehicles: number,
+  vehiclesWithAC: number,
   lineCount: number,
-): TramLineInfo[] {
-  const count = Math.max(0, Math.min(lineCount, LINE_NUMBERS.length));
-  if (count === 0 || totalTrams === 0) return [];
+): LineInfo[] {
+  const count = Math.max(0, Math.min(lineCount, lineNumbers.length));
+  if (count === 0 || totalVehicles === 0) return [];
 
-  const lines: TramLineInfo[] = [];
-  let remainingTotal = totalTrams;
-  let remainingAC = tramsWithAC;
-  const overallRatio = totalTrams > 0 ? tramsWithAC / totalTrams : 0;
+  const lines: LineInfo[] = [];
+  let remainingTotal = totalVehicles;
+  let remainingAC = vehiclesWithAC;
+  const overallRatio = totalVehicles > 0 ? vehiclesWithAC / totalVehicles : 0;
 
   for (let i = 0; i < count; i += 1) {
     const isLast = i === count - 1;
@@ -171,8 +203,9 @@ function generateLineDetails(
     const withAC = isLast ? remainingAC : Math.min(wantAC, remainingAC, total);
 
     lines.push({
-      lineNumber: LINE_NUMBERS[i],
-      routeId: `route-${LINE_NUMBERS[i]}`,
+      lineNumber: lineNumbers[i],
+      routeId: `route-${lineNumbers[i]}`,
+      isTrolleybus: TROLLEYBUS_LINES.has(lineNumbers[i]),
       totalVehicles: total,
       vehiclesWithAC: withAC,
       vehiclesWithoutAC: total - withAC,
@@ -185,14 +218,19 @@ function generateLineDetails(
   return lines;
 }
 
-function buildAnalysisResult(state: DebugState): TramAnalysisResult {
-  const withAC = Math.max(0, Math.min(state.tramsWithAC, state.totalTrams));
-  const withoutAC = state.totalTrams - withAC;
+function buildAnalysisResult(state: DebugState): VehicleAnalysisResult {
+  const withAC = Math.max(0, Math.min(state.vehiclesWithAC, state.totalVehicles));
+  const withoutAC = state.totalVehicles - withAC;
   const counts = {
-    totalTrams: state.totalTrams,
-    tramsWithAC: withAC,
-    tramsWithoutAC: withoutAC,
-    lineDetails: generateLineDetails(state.totalTrams, withAC, state.lineCount),
+    totalVehicles: state.totalVehicles,
+    vehiclesWithAC: withAC,
+    vehiclesWithoutAC: withoutAC,
+    lineDetails: generateLineDetails(
+      LINE_NUMBERS[state.mode],
+      state.totalVehicles,
+      withAC,
+      state.lineCount,
+    ),
   };
   // Debug sliders drive one set of numbers; the layover toggle just shows the
   // same counts in both modes.
@@ -214,7 +252,8 @@ export function DebugClient() {
   const data = state.loading || state.error ? null : buildAnalysisResult(state);
   const noop = () => {};
 
-  const withoutAC = Math.max(0, state.totalTrams - state.tramsWithAC);
+  const withoutAC = Math.max(0, state.totalVehicles - state.vehiclesWithAC);
+  const maxLines = LINE_NUMBERS[state.mode].length;
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
@@ -238,6 +277,16 @@ export function DebugClient() {
 
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <Field label="Vozidla">
+                <select
+                  value={state.mode}
+                  onChange={(event) => set("mode", event.target.value as VehicleMode)}
+                  className={inputClass}
+                >
+                  <option value="tram">Tramvaje 🚋</option>
+                  <option value="bus">Autobusy 🚌</option>
+                </select>
+              </Field>
               <Field label="Teplota (°C)">
                 <input
                   type="number"
@@ -249,12 +298,14 @@ export function DebugClient() {
                   className={inputClass}
                 />
               </Field>
-              <Field label="Celkem tramvají na trati">
+              <Field label="Celkem vozidel na trati">
                 <input
                   type="number"
                   min={0}
-                  value={state.totalTrams}
-                  onChange={(event) => set("totalTrams", Math.max(0, Number(event.target.value)))}
+                  value={state.totalVehicles}
+                  onChange={(event) =>
+                    set("totalVehicles", Math.max(0, Number(event.target.value)))
+                  }
                   className={inputClass}
                 />
               </Field>
@@ -262,14 +313,14 @@ export function DebugClient() {
                 <input
                   type="number"
                   min={0}
-                  max={state.totalTrams}
-                  value={state.tramsWithAC}
+                  max={state.totalVehicles}
                   onChange={(event) =>
                     set(
-                      "tramsWithAC",
-                      Math.max(0, Math.min(state.totalTrams, Number(event.target.value))),
+                      "vehiclesWithAC",
+                      Math.max(0, Math.min(state.totalVehicles, Number(event.target.value))),
                     )
                   }
+                  value={state.vehiclesWithAC}
                   className={inputClass}
                 />
               </Field>
@@ -285,13 +336,10 @@ export function DebugClient() {
                 <input
                   type="number"
                   min={0}
-                  max={LINE_NUMBERS.length}
+                  max={maxLines}
                   value={state.lineCount}
                   onChange={(event) =>
-                    set(
-                      "lineCount",
-                      Math.max(0, Math.min(LINE_NUMBERS.length, Number(event.target.value))),
-                    )
+                    set("lineCount", Math.max(0, Math.min(maxLines, Number(event.target.value))))
                   }
                   className={inputClass}
                 />
@@ -323,7 +371,9 @@ export function DebugClient() {
               <button
                 key={preset.label}
                 type="button"
-                onClick={() => setState(preset.state)}
+                // Presets describe weather/data scenarios; keep whichever
+                // vehicle mode is currently selected.
+                onClick={() => setState((prev) => ({ ...preset.state, mode: prev.mode }))}
                 className="rounded-md bg-gray-100 px-3 py-1 font-mono text-gray-700 text-xs hover:bg-sky-100 hover:text-sky-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-sky-950 dark:hover:text-sky-300"
               >
                 {preset.label}
@@ -336,7 +386,8 @@ export function DebugClient() {
       </div>
 
       <div data-theme={state.isDark ? "dark" : "light"}>
-        <TramStatusView
+        <VehicleStatusView
+          mode={state.mode}
           data={data}
           error={state.error || null}
           lastUpdated={mounted && data ? new Date() : null}
@@ -486,7 +537,7 @@ function Thresholds() {
           </table>
           <p className="mt-3 text-gray-600 text-xs dark:text-gray-400">
             Pod <span className="font-mono">{COOL_CUTOFF_C} °C</span> karta linky přepne na
-            neutrální šedou a emoji na 🚋.
+            neutrální šedou a emoji na 🚋/🚌.
           </p>
         </section>
       </div>

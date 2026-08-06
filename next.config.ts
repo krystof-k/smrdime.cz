@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // Trams own the homepage; give the symmetric URL somewhere to go.
+      { source: "/tramvaje", destination: "/", permanent: true },
+    ];
+  },
 };
 
 initOpenNextCloudflareForDev();

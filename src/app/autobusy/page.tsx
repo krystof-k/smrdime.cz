@@ -6,9 +6,9 @@ import { buildPageMetadata } from "@/lib/page-metadata";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return buildPageMetadata("tram");
+  return buildPageMetadata("bus");
 }
 
-export default function Home() {
-  return <VehicleStatus mode="tram" />;
+export default function Buses() {
+  return <VehicleStatus mode="bus" />;
 }
