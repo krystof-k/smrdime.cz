@@ -26,28 +26,31 @@ export interface VehicleAnalysisResult {
 
 const TRAM_ROUTE_TYPE = 0;
 
-// GTFS bus-family route types: 3 = bus, 11 = trolleybus, 800 = trolleybus in
-// the extended type set (which encoding PID uses isn't pinned down, so accept
-// both). Prague's trolleybus lines are city bus service in all but the wires.
-const BUS_ROUTE_TYPES = new Set([3, 11, 800]);
+// GTFS route type 11 = trolleybus. In the live feed (verified 2026-08-06)
+// every type-11 line is a Prague DPP trolleybus (51, 52, 53, 58, 59) — city
+// bus service in all but the wires — so the type alone qualifies, with no
+// line-number gate.
+const TROLLEYBUS_ROUTE_TYPE = 11;
+const BUS_ROUTE_TYPE = 3;
 
 /**
- * PID line-number ranges for Prague city bus service:
- *   58–59    trolleybuses
+ * PID line-number ranges for Prague city bus service (route type 3):
  *   100–299  daytime city lines (incl. school lines)
  *   900–939  night city lines (suburban night starts at 941)
- * Everything else the feed carries under a bus route type — suburban 300+,
- * tram-replacement X-lines, specials like AE — is not a "pražský autobus".
+ * Everything else the feed carries as a bus — suburban 300+, tram-replacement
+ * X-lines, specials like AE or other towns' "MHD n" lines — is not a
+ * "pražský autobus".
  */
 export function isCityBusLine(lineNumber: string): boolean {
   if (!/^\d+$/.test(lineNumber)) return false;
   const n = Number(lineNumber);
-  return (n >= 58 && n <= 59) || (n >= 100 && n <= 299) || (n >= 900 && n <= 939);
+  return (n >= 100 && n <= 299) || (n >= 900 && n <= 939);
 }
 
 function matchesMode(mode: VehicleMode, routeType: number, lineNumber: string): boolean {
   if (mode === "tram") return routeType === TRAM_ROUTE_TYPE;
-  return BUS_ROUTE_TYPES.has(routeType) && isCityBusLine(lineNumber);
+  if (routeType === TROLLEYBUS_ROUTE_TYPE) return true;
+  return routeType === BUS_ROUTE_TYPE && isCityBusLine(lineNumber);
 }
 
 function countByAC(vehicles: VehiclePosition[]): {
@@ -57,6 +60,9 @@ function countByAC(vehicles: VehiclePosition[]): {
   let withAC = 0;
   let withoutAC = 0;
   for (const vehicle of vehicles) {
+    // air_conditioned is nullable upstream; unknown deliberately counts as
+    // "without AC" — a vehicle is smelly until the feed proves otherwise.
+    // (Live share of unknowns 2026-08-06: 0 % trams, ~0.3 % city buses.)
     if (vehicle.trip.air_conditioned) withAC += 1;
     else withoutAC += 1;
   }
@@ -100,9 +106,12 @@ function buildCounts(routes: Route[], vehicles: VehiclePosition[]): VehicleCount
 // vehicle once — the live trip when tracked, else the next trip it will serve
 // (that's the line a waiting vehicle is about to be), else the just-finished one.
 function dedupeByVehicle(vehicles: VehiclePosition[], now: Date): VehiclePosition[] {
-  const byVehicle = new Map<number, VehiclePosition[]>();
+  const byVehicle = new Map<number | string, VehiclePosition[]>();
   for (const vehicle of vehicles) {
-    const registration = vehicle.trip.vehicle_registration_number;
+    // Registration is nullable upstream; falling back to the trip id keeps a
+    // no-registration record as its own vehicle instead of collapsing all of
+    // them into one map entry.
+    const registration = vehicle.trip.vehicle_registration_number ?? vehicle.trip.gtfs.trip_id;
     const existing = byVehicle.get(registration);
     if (existing) existing.push(vehicle);
     else byVehicle.set(registration, [vehicle]);

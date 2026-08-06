@@ -22,8 +22,16 @@ test.describe("bus page", () => {
     await page.goto("/autobusy");
     await expect(page.getByText(/z 300 autobusů/)).toBeVisible();
     await expect(page.getByText(/na lince/)).toBeVisible();
-    await expect(page.getByText(/klimatizovaných/)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "dpp.cz" })).toHaveCount(0);
+    await expect(page.getByText(/ze všech/)).toHaveCount(0);
+  });
+
+  test("dpp.cz popover cites the bus fleet AC share", async ({ page }) => {
+    await page.goto("/autobusy");
+    await page.getByRole("button", { name: "dpp.cz" }).click();
+    const tooltip = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("73,12");
+    await expect(tooltip).toContainText("vozového parku");
   });
 
   test("layover toggle uses bus wording", async ({ page }) => {

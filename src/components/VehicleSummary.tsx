@@ -56,11 +56,17 @@ export function VehicleSummary({
         ze všech {AC_FLEET_TOTAL} klimatizovaných tramvají.
         <sup>
           {" "}
-          <DppInfoPopover />
+          <DppInfoPopover mode="tram" />
         </sup>
       </>
     ) : (
-      <>.</>
+      <>
+        .
+        <sup>
+          {" "}
+          <DppInfoPopover mode="bus" />
+        </sup>
+      </>
     );
 
   return (

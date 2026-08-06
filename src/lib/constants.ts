@@ -11,6 +11,16 @@ export const AC_FLEET_15T = 127;
 export const AC_FLEET_52T = 20;
 export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
 
+/**
+ * Share of DPP's bus fleet with full AC, as stated on the DPP FAQ
+ * (`DPP_AC_FAQ_URL`): "K 25. červnu 2026 má DPP ve vozovém parku 73,12 %
+ * plně klimatizovaných autobusů." DPP gives no absolute count for buses, so
+ * the bus summary cites this share instead of a "ze všech N" clause.
+ * Last verified: 2026-08-06.
+ */
+export const AC_BUS_FLEET_SHARE = "73,12";
+export const AC_BUS_FLEET_SHARE_DATE = "25. červnu 2026";
+
 // Edge cache on /api/tram dedupes globally at 30 s; client polling more
 // frequently still sees fresh-ish data cheaply via cache hits.
 export const REFRESH_INTERVAL_MS = 10_000;

@@ -198,10 +198,10 @@ describe("analyze — bus mode", () => {
     );
   });
 
-  it("accepts the extended GTFS trolleybus route type (800)", () => {
+  it("includes every trolleybus line by route type alone, without a number gate", () => {
     const result = analyze(
-      [route("59", "59", 800)],
-      [vehicle("59", true, { routeType: 800 })],
+      [route("51", "51", 11)],
+      [vehicle("51", true, { routeType: 11 })],
       FIXED_DATE,
       "bus",
     );
@@ -234,9 +234,9 @@ describe("isCityBusLine", () => {
     assert.equal(isCityBusLine("939"), true);
   });
 
-  it("accepts trolleybus lines 58 and 59", () => {
-    assert.equal(isCityBusLine("58"), true);
-    assert.equal(isCityBusLine("59"), true);
+  it("rejects trolleybus numbers — those qualify by route type, not number", () => {
+    assert.equal(isCityBusLine("58"), false);
+    assert.equal(isCityBusLine("59"), false);
   });
 
   it("rejects suburban day and night lines", () => {
@@ -245,8 +245,9 @@ describe("isCityBusLine", () => {
     assert.equal(isCityBusLine("941"), false);
   });
 
-  it("rejects non-numeric specials (AE, tram-replacement X-lines)", () => {
+  it("rejects non-numeric specials (AE, X-lines, other towns' MHD)", () => {
     assert.equal(isCityBusLine("AE"), false);
     assert.equal(isCityBusLine("X22"), false);
+    assert.equal(isCityBusLine("MHD 1"), false);
   });
 });

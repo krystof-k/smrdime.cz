@@ -26,8 +26,10 @@ export interface VehiclePosition {
       route_type: number;
       trip_id: string;
     };
-    air_conditioned: boolean;
-    vehicle_registration_number: number;
+    /** Nullable upstream — null means the operator didn't report AC status. */
+    air_conditioned: boolean | null;
+    /** Nullable upstream — rare operators don't report fleet numbers. */
+    vehicle_registration_number: number | null;
     start_timestamp: string;
   };
   last_position: {
@@ -108,5 +110,11 @@ export async function getVehiclePositions(): Promise<VehiclePosition[]> {
   const response = await makeRequest<{
     features: Array<{ properties: VehiclePosition }>;
   }>(`/v2/vehiclepositions?limit=${VEHICLE_POSITIONS_LIMIT}&includeNotTracking=true`);
+  // Hitting the limit means silent truncation upstream — the counts would
+  // quietly deflate. Live feed runs ~3-4k records, so this firing at all is
+  // the signal to add pagination.
+  if (response.features.length === VEHICLE_POSITIONS_LIMIT) {
+    console.warn("vehiclepositions hit the response limit — vehicle counts may be truncated");
+  }
   return response.features.map((feature) => feature.properties);
 }
