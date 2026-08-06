@@ -69,7 +69,7 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
   }, [updatePosition]);
 
   const linkClass =
-    "rounded px-1 font-mono underline decoration-dotted transition-all hover:decoration-solid hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300";
+    "-mx-0.5 rounded px-0.5 font-mono underline decoration-dotted transition-all hover:decoration-solid hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300";
 
   return (
     <span className="inline-block">
@@ -82,7 +82,7 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
         onClick={openNow}
         onMouseEnter={openNow}
         onMouseLeave={scheduleClose}
-        className="rounded px-1 font-mono text-gray-500 text-xs underline decoration-dotted transition-colors hover:text-gray-700 hover:decoration-solid dark:text-gray-400 dark:hover:text-gray-200"
+        className="-mx-0.5 rounded px-0.5 font-mono text-gray-500 text-xs underline decoration-dotted transition-colors hover:text-gray-700 hover:decoration-solid dark:text-gray-400 dark:hover:text-gray-200"
       >
         dpp.cz
       </button>

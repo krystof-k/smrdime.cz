@@ -55,8 +55,11 @@ export function LineScroller({
         className="flex w-0 min-w-full gap-4 overflow-x-auto pr-4 pb-4 pl-4 md:pr-8 md:pl-8 lg:pr-12 lg:pl-12"
         style={{ scrollbarWidth: "thin" }}
       >
+        {/* The outline is an inset ring (shadow), not a border — a border
+            would shift the padding box and with it the absolutely positioned
+            magnifier by 1px between the two states. */}
         <search
-          className={`relative flex h-16 shrink-0 items-center gap-2 overflow-hidden rounded-2xl border border-gray-300/80 p-3 backdrop-blur-sm transition-[width] duration-200 dark:border-gray-600/60 ${
+          className={`relative flex h-16 shrink-0 items-center overflow-hidden rounded-2xl p-3 ring-1 ring-gray-300/80 ring-inset backdrop-blur-sm transition-[width] duration-200 dark:ring-gray-600/60 ${
             searchOpen
               ? "w-40 bg-white/70 dark:bg-gray-800/70"
               : "w-16 bg-white/50 hover:bg-white/80 dark:bg-gray-800/50 dark:hover:bg-gray-800/80"
@@ -72,16 +75,10 @@ export function LineScroller({
             }}
             aria-label={searchOpen ? "Zavřít hledání" : "Hledat linku"}
             aria-expanded={searchOpen}
-            // The magnifier must not move when the card expands: collapsed it
-            // sits at the center of the 64px square (x=32); expanded it gets a
-            // fixed 40px box after the 12px padding, so its center stays at
-            // 12 + 20 = 32.
-            className={
-              searchOpen
-                ? "flex w-10 shrink-0 cursor-pointer items-center justify-center text-2xl"
-                : // Cover the whole square so a click anywhere on it opens the search.
-                  "absolute inset-0 flex cursor-pointer items-center justify-center text-2xl"
-            }
+            // One identical absolutely positioned 64px box in both states, so
+            // the magnifier cannot move a single pixel when the card expands.
+            // Collapsed it covers the whole square (click anywhere opens).
+            className="absolute inset-y-0 left-0 flex w-16 cursor-pointer items-center justify-center text-2xl"
           >
             🔍
           </button>
@@ -105,7 +102,8 @@ export function LineScroller({
               }}
               placeholder="Linka"
               aria-label="Hledat linku"
-              className="w-full min-w-0 bg-transparent font-black font-mono text-gray-800 text-xl outline-none placeholder:font-normal placeholder:text-base placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500 [&::-webkit-search-cancel-button]:hidden"
+              // Clears the magnifier's 64px box (container padding is 12px).
+              className="ml-13 w-full min-w-0 bg-transparent font-black font-mono text-gray-800 text-xl outline-none placeholder:font-normal placeholder:text-base placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500 [&::-webkit-search-cancel-button]:hidden"
             />
           )}
         </search>

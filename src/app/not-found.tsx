@@ -18,7 +18,7 @@ export default function NotFound() {
             Asi jsi <span className="font-black">vystoupil</span> o pár zastávek dřív. Vrať se{" "}
             <Link
               href="/"
-              className="cursor-pointer rounded px-1 font-black text-amber-600 underline decoration-dotted transition-all hover:bg-amber-100 hover:decoration-solid hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
+              className="-mx-0.5 cursor-pointer rounded px-0.5 font-black text-amber-600 underline decoration-dotted transition-all hover:bg-amber-100 hover:decoration-solid hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
             >
               domů
             </Link>

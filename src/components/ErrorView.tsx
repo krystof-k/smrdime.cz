@@ -23,7 +23,7 @@ export function ErrorView({ mode, message, onRetry }: ErrorViewProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="cursor-pointer rounded px-1 font-black text-red-600 underline decoration-dotted transition-all hover:bg-red-100 hover:decoration-solid hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
+          className="-mx-0.5 cursor-pointer rounded px-0.5 font-black text-red-600 underline decoration-dotted transition-all hover:bg-red-100 hover:decoration-solid hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
         >
           znovu
         </button>
