@@ -72,11 +72,14 @@ export function LineScroller({
             }}
             aria-label={searchOpen ? "Zavřít hledání" : "Hledat linku"}
             aria-expanded={searchOpen}
+            // The magnifier must not move when the card expands: collapsed it
+            // sits at the center of the 64px square (x=32); expanded it gets a
+            // fixed 40px box after the 12px padding, so its center stays at
+            // 12 + 20 = 32.
             className={
               searchOpen
-                ? "shrink-0 cursor-pointer text-2xl"
-                : // Cover the whole square so a click anywhere on it opens the
-                  // search, with the magnifier centered while collapsed.
+                ? "flex w-10 shrink-0 cursor-pointer items-center justify-center text-2xl"
+                : // Cover the whole square so a click anywhere on it opens the search.
                   "absolute inset-0 flex cursor-pointer items-center justify-center text-2xl"
             }
           >
