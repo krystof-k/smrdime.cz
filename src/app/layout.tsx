@@ -7,7 +7,9 @@ import "./globals.css";
 // Site-wide defaults (trams own the homepage); the tram and bus pages override
 // title, description and og:image per mode via generateMetadata.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://smrdime.cz"),
+  // Must be the www host: the apex 301-redirects there, and OG scrapers
+  // commonly refuse to follow redirects on og:image, showing no card at all.
+  metadataBase: new URL("https://www.smrdime.cz"),
   title: VEHICLE_MODES.tram.title,
   description: VEHICLE_MODES.tram.description,
 };
