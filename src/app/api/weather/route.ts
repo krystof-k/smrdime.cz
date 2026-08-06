@@ -10,22 +10,43 @@ import { WEATHER_API_URL } from "@/lib/constants";
 const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=3600";
 const ERROR_CACHE_CONTROL = "public, s-maxage=10";
 const REQUEST_TIMEOUT_MS = 8000;
+// Open-Meteo puts the actual cause in the body ({"error":true,"reason":"..."}),
+// so a rate limit and a malformed request are indistinguishable by status alone.
+const UPSTREAM_SNIPPET_LENGTH = 200;
 
 export async function GET() {
+  let upstreamStatus: number | null = null;
   try {
     const response = await fetch(WEATHER_API_URL, {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw new Error(`Open-Meteo failed: ${response.status}`);
+    upstreamStatus = response.status;
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `Open-Meteo failed: ${response.status} ${body.slice(0, UPSTREAM_SNIPPET_LENGTH)}`,
+      );
+    }
 
-    const payload = (await response.json()) as { current_weather: { temperature: number } };
-    const temperature = Math.round(payload.current_weather.temperature);
+    const payload = (await response.json()) as { current_weather?: { temperature?: number } };
+    const temperature = payload.current_weather?.temperature;
+    if (typeof temperature !== "number") {
+      throw new Error(
+        `Open-Meteo returned no temperature: ${JSON.stringify(payload).slice(0, UPSTREAM_SNIPPET_LENGTH)}`,
+      );
+    }
 
-    return NextResponse.json({ temperature }, { headers: { "Cache-Control": CACHE_CONTROL } });
-  } catch (error) {
-    console.error("weather API failed", error);
     return NextResponse.json(
-      { error: "Failed to fetch weather" },
+      { temperature: Math.round(temperature) },
+      { headers: { "Cache-Control": CACHE_CONTROL } },
+    );
+  } catch (error) {
+    // The Workers log showed only a stack when the Error was passed as its own
+    // argument, so interpolate the message to keep failures diagnosable.
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`weather API failed (upstream ${upstreamStatus ?? "unreachable"}): ${reason}`);
+    return NextResponse.json(
+      { error: "Failed to fetch weather", upstream: upstreamStatus },
       { status: 500, headers: { "Cache-Control": ERROR_CACHE_CONTROL } },
     );
   }
