@@ -1,7 +1,8 @@
 import { WEATHER_API_URL } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { OG_EMOJI } from "@/lib/og-emoji";
-import { analyzeTramACStatus } from "@/lib/tram-analysis";
+import { analyzeACStatus } from "@/lib/vehicle-analysis";
+import { VEHICLE_MODES } from "@/lib/vehicle-modes";
 
 // workers-og pulls in Satori/resvg WASM that only links in the Cloudflare
 // worker, not when Next evaluates this module in Node at build time. Importing
@@ -96,7 +97,7 @@ async function fetchTemperature(): Promise<number | null> {
   }
 }
 
-// Mirrors TramHeadline's weight/color mix so the card reads like the homepage.
+// Mirrors VehicleHeadline's weight/color mix so the card reads like the homepage.
 // Each unit carries a trailing space as a margin (see SPACE).
 function word(text: string, weight: 100 | 400 | 900, color?: string, mono?: boolean) {
   return (
@@ -140,23 +141,26 @@ function emoji(str: string) {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { ImageResponse, loadGoogleFont } = await import("workers-og");
 
+  const mode = new URL(request.url).searchParams.get("v") === "bus" ? "bus" : "tram";
+  const { genitive, emoji: vehicleEmoji } = VEHICLE_MODES[mode];
+
   const [analysis, temperature, fonts] = await Promise.all([
-    analyzeTramACStatus().catch(() => null),
+    analyzeACStatus(mode).catch(() => null),
     fetchTemperature(),
     loadFonts(loadGoogleFont),
   ]);
 
   if (!analysis) {
-    return new Response("Failed to fetch tram status", {
+    return new Response("Failed to fetch vehicle status", {
       status: 500,
       headers: { "Cache-Control": ERROR_CACHE_CONTROL },
     });
   }
 
-  const count = analysis.onTrack.tramsWithoutAC;
+  const count = analysis.onTrack.vehiclesWithoutAC;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
   const stamp = STAMP_FORMAT.format(new Date());
 
@@ -168,12 +172,12 @@ export async function GET() {
           word("je", 100),
           word(`${temperature}°C`, 900, accent, true),
           ...emoji(getTemperatureEmoji(temperature)),
-          // Full-width flex item forces a wrap, mirroring TramHeadline's <br/>.
+          // Full-width flex item forces a wrap, mirroring VehicleHeadline's <br/>.
           <div key="br" style={{ width: "100%" }} />,
           word("a jezdí", 100),
           word(`${count}`, 900, accent, true),
-          word("tramvají", 100),
-          ...emoji("🚋"),
+          word(genitive, 100),
+          ...emoji(vehicleEmoji),
           <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),
         ]
@@ -182,8 +186,8 @@ export async function GET() {
           word("Praze", 900),
           word("jezdí", 100),
           word(`${count}`, 900, accent, true),
-          word("tramvají", 100),
-          ...emoji("🚋"),
+          word(genitive, 100),
+          ...emoji(vehicleEmoji),
           <div key="br2" style={{ width: "100%" }} />,
           word("bez klimatizace.", 900),
         ];

@@ -3,24 +3,36 @@
 import { useState } from "react";
 import { getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { buildShareUrl } from "@/lib/share";
+import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 
 const SHARE_TITLE = "Smrdíme?";
-const SHARE_TEXT = "Kolik pražských tramvají právě jede bez klimatizace?";
 
-export function ShareButton({ temperature }: { temperature: number | null }) {
+// Shared by the share button and the mode-switch link so the action row reads
+// as one control family.
+export const ACTION_BUTTON_CLASS =
+  "inline-flex items-center gap-2 rounded-lg border-2 px-5 py-2.5 font-medium font-mono text-base transition-colors hover:bg-gray-50 dark:hover:bg-white/5";
+
+export function ShareButton({
+  mode,
+  temperature,
+}: {
+  mode: VehicleMode;
+  temperature: number | null;
+}) {
   const [copied, setCopied] = useState(false);
+  const { path, shareText } = VEHICLE_MODES[mode];
   // Tie the button to the live temperature accent, like the headline numbers.
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
 
   async function handleShare() {
     // Fresh token per click so the shared link is a new URL the crawler hasn't
     // cached yet (see buildShareUrl).
-    const url = buildShareUrl(Date.now());
+    const url = buildShareUrl(Date.now(), path);
 
     // Native share sheet on mobile; clipboard everywhere else.
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url });
+        await navigator.share({ title: SHARE_TITLE, text: shareText, url });
       } catch {
         // user dismissed the sheet — nothing to do
       }
@@ -41,7 +53,7 @@ export function ShareButton({ temperature }: { temperature: number | null }) {
       type="button"
       onClick={handleShare}
       style={{ color: accent, borderColor: accent }}
-      className="mt-8 inline-flex items-center gap-2 rounded-lg border-2 px-5 py-2.5 font-medium font-mono text-base transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+      className={ACTION_BUTTON_CLASS}
     >
       <svg
         aria-hidden="true"

@@ -179,8 +179,8 @@ function levelFor(percentage: number, temp: number | null): ACLevel {
 const NEUTRAL_LIGHT = "rgb(229 231 235)";
 const NEUTRAL_DARK = "rgb(55 65 81)";
 
-export function getACEmoji(percentage: number, temp: number | null): string {
-  if (temp !== null && temp < COOL_CUTOFF_C) return "🚋";
+export function getACEmoji(percentage: number, temp: number | null, coolEmoji: string): string {
+  if (temp !== null && temp < COOL_CUTOFF_C) return coolEmoji;
   return levelFor(percentage, temp).emoji;
 }
 

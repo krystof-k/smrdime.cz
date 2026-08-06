@@ -1,18 +1,20 @@
 import { getACBackgroundColor, getACEmoji } from "@/lib/display";
 import { roundPercent } from "@/lib/ratios";
-import type { TramLineInfo } from "@/lib/tram-analysis";
+import type { LineInfo } from "@/lib/vehicle-analysis";
+import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 
-type TramLineCardProps = {
-  line: TramLineInfo;
+type LineCardProps = {
+  mode: VehicleMode;
+  line: LineInfo;
   temperature: number | null;
   isDark: boolean;
   showPercentages: boolean;
 };
 
-export function TramLineCard({ line, temperature, isDark, showPercentages }: TramLineCardProps) {
+export function LineCard({ mode, line, temperature, isDark, showPercentages }: LineCardProps) {
   const acPercentage = roundPercent(line.vehiclesWithAC, line.totalVehicles);
   const background = getACBackgroundColor(acPercentage, temperature, isDark);
-  const emoji = getACEmoji(acPercentage, temperature);
+  const emoji = getACEmoji(acPercentage, temperature, VEHICLE_MODES[mode].emoji);
   const ratio = showPercentages
     ? `${acPercentage}\u00A0%`
     : `${line.vehiclesWithAC}/${line.totalVehicles}`;

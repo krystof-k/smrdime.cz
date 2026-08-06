@@ -2,25 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import { filterLinesByQuery } from "@/lib/line-search";
-import type { TramLineInfo } from "@/lib/tram-analysis";
-import { TramLineSkeleton } from "./LoadingSkeleton";
-import { TramLineCard } from "./TramLineCard";
+import type { LineInfo } from "@/lib/vehicle-analysis";
+import type { VehicleMode } from "@/lib/vehicle-modes";
+import { LineCard } from "./LineCard";
+import { LineSkeleton } from "./LoadingSkeleton";
 
 const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
-type TramLineScrollerProps = {
-  lines: TramLineInfo[] | null;
+type LineScrollerProps = {
+  mode: VehicleMode;
+  lines: LineInfo[] | null;
   temperature: number | null;
   isDark: boolean;
   showPercentages: boolean;
 };
 
-export function TramLineScroller({
+export function LineScroller({
+  mode,
   lines,
   temperature,
   isDark,
   showPercentages,
-}: TramLineScrollerProps) {
+}: LineScrollerProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,11 +107,12 @@ export function TramLineScroller({
           )}
         </search>
         {!visibleLines
-          ? SKELETON_KEYS.map((key) => <TramLineSkeleton key={key} />)
+          ? SKELETON_KEYS.map((key) => <LineSkeleton key={key} />)
           : visibleLines.length > 0
             ? visibleLines.map((line) => (
-                <TramLineCard
+                <LineCard
                   key={line.routeId}
+                  mode={mode}
                   line={line}
                   temperature={temperature}
                   isDark={isDark}
@@ -125,7 +129,7 @@ export function TramLineScroller({
   );
 }
 
-function sortedActiveLines(lines: TramLineInfo[]): TramLineInfo[] {
+function sortedActiveLines(lines: LineInfo[]): LineInfo[] {
   return lines
     .filter((line) => line.totalVehicles > 0)
     .toSorted((a, b) => a.vehiclesWithAC / a.totalVehicles - b.vehiclesWithAC / b.totalVehicles);

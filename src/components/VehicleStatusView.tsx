@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { TramAnalysisResult } from "@/lib/tram-analysis";
+import type { VehicleAnalysisResult } from "@/lib/vehicle-analysis";
+import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 import { ErrorView } from "./ErrorView";
 import { Footer } from "./Footer";
+import { LineScroller } from "./LineScroller";
+import { ModeSwitchLink } from "./ModeSwitchLink";
 import { ShareButton } from "./ShareButton";
-import { TramHeadline } from "./TramHeadline";
-import { TramLineScroller } from "./TramLineScroller";
-import { TramSummary } from "./TramSummary";
+import { VehicleHeadline } from "./VehicleHeadline";
+import { VehicleSummary } from "./VehicleSummary";
 
-type TramStatusViewProps = {
-  data: TramAnalysisResult | null;
+type VehicleStatusViewProps = {
+  mode: VehicleMode;
+  data: VehicleAnalysisResult | null;
   error: string | null;
   lastUpdated: Date | null;
   paused: boolean;
@@ -20,7 +23,8 @@ type TramStatusViewProps = {
   onRetry: () => void;
 };
 
-export function TramStatusView({
+export function VehicleStatusView({
+  mode,
   data,
   error,
   lastUpdated,
@@ -29,7 +33,7 @@ export function TramStatusView({
   temperature,
   isDark,
   onRetry,
-}: TramStatusViewProps) {
+}: VehicleStatusViewProps) {
   const [showPercentages, setShowPercentages] = useState(false);
   const [includeLayovers, setIncludeLayovers] = useState(false);
   const counts = data ? (includeLayovers ? data.inService : data.onTrack) : null;
@@ -52,12 +56,13 @@ export function TramStatusView({
     <div className="grid min-h-screen cursor-pointer grid-rows-[1fr_auto] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <main className="flex flex-col justify-center">
         {error && !data ? (
-          <ErrorView message={error} onRetry={onRetry} />
+          <ErrorView mode={mode} message={error} onRetry={onRetry} />
         ) : (
           <div className="text-left">
             <div className="grid gap-y-2 px-4 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-6 md:gap-y-0 md:px-8 lg:px-12">
               <div className="md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
                 <TopControls
+                  mode={mode}
                   lastUpdated={lastUpdated}
                   paused={paused}
                   onTogglePaused={onTogglePaused}
@@ -68,21 +73,27 @@ export function TramStatusView({
                 />
               </div>
               <div className="md:col-start-1 md:row-start-1">
-                <TramHeadline
+                <VehicleHeadline
+                  mode={mode}
                   counts={counts}
                   temperature={temperature}
                   showPercentages={showPercentages}
                 />
-                <TramSummary
+                <VehicleSummary
+                  mode={mode}
                   counts={counts}
                   temperature={temperature}
                   showPercentages={showPercentages}
                   includeLayovers={includeLayovers}
                 />
-                <ShareButton temperature={temperature} />
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <ShareButton mode={mode} temperature={temperature} />
+                  <ModeSwitchLink mode={mode} temperature={temperature} />
+                </div>
               </div>
             </div>
-            <TramLineScroller
+            <LineScroller
+              mode={mode}
               lines={counts?.lineDetails ?? null}
               temperature={temperature}
               isDark={isDark}
@@ -97,6 +108,7 @@ export function TramStatusView({
 }
 
 type TopControlsProps = {
+  mode: VehicleMode;
   lastUpdated: Date | null;
   paused: boolean;
   onTogglePaused: () => void;
@@ -107,6 +119,7 @@ type TopControlsProps = {
 };
 
 function TopControls({
+  mode,
   lastUpdated,
   paused,
   onTogglePaused,
@@ -115,6 +128,7 @@ function TopControls({
   includeLayovers,
   onToggleIncludeLayovers,
 }: TopControlsProps) {
+  const { plural, onRouteLabel } = VEHICLE_MODES[mode];
   return (
     <div className="flex items-center justify-end gap-1">
       <button
@@ -122,11 +136,13 @@ function TopControls({
         onClick={onToggleIncludeLayovers}
         aria-pressed={includeLayovers}
         aria-label={
-          includeLayovers ? "Zobrazit jen tramvaje na trati" : "Zahrnout i tramvaje na konečných"
+          includeLayovers
+            ? `Zobrazit jen ${plural} ${onRouteLabel}`
+            : `Zahrnout i ${plural} na konečných`
         }
         className="cursor-pointer rounded px-1 font-mono text-gray-400 text-xs transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
       >
-        {includeLayovers ? "Jen na trati" : "Včetně konečných"}
+        {includeLayovers ? `Jen ${onRouteLabel}` : "Včetně konečných"}
       </button>
       <span aria-hidden="true" className="text-gray-300 text-xs dark:text-gray-700">
         •

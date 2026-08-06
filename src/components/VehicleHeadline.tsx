@@ -1,15 +1,23 @@
 import { getTemperatureColor, getTemperatureEmoji, NEUTRAL_TEXT_COLOR } from "@/lib/display";
 import { percentWithoutAC } from "@/lib/ratios";
-import type { TramCounts } from "@/lib/tram-analysis";
+import type { VehicleCounts } from "@/lib/vehicle-analysis";
+import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 import { SkeletonBlock } from "./LoadingSkeleton";
 
-type TramHeadlineProps = {
-  counts: TramCounts | null;
+type VehicleHeadlineProps = {
+  mode: VehicleMode;
+  counts: VehicleCounts | null;
   temperature: number | null;
   showPercentages: boolean;
 };
 
-export function TramHeadline({ counts, temperature, showPercentages }: TramHeadlineProps) {
+export function VehicleHeadline({
+  mode,
+  counts,
+  temperature,
+  showPercentages,
+}: VehicleHeadlineProps) {
+  const { genitive, emoji } = VEHICLE_MODES[mode];
   const tempColor = temperature !== null ? getTemperatureColor(temperature) : NEUTRAL_TEXT_COLOR;
   const countClass = `font-black font-mono inline-block ${counts ? tempColor : ""}`;
 
@@ -38,13 +46,13 @@ export function TramHeadline({ counts, temperature, showPercentages }: TramHeadl
               <span className="font-sans">&nbsp;</span>%
             </>
           ) : (
-            counts.tramsWithoutAC
+            counts.vehiclesWithoutAC
           )
         ) : (
           <SkeletonBlock />
         )}
       </span>{" "}
-      <span className="font-thin">tramvají</span> 🚋
+      <span className="font-thin">{genitive}</span> {emoji}
       <br />
       <span className="font-black">bez klimatizace</span>.
     </h1>

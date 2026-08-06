@@ -2,18 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REFRESH_INTERVAL_MS } from "@/lib/constants";
-import type { TramAnalysisResult } from "@/lib/tram-analysis";
+import type { VehicleAnalysisResult } from "@/lib/vehicle-analysis";
+import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 import { usePageVisible } from "./usePageVisible";
 
-export type TramStatusState = {
-  data: TramAnalysisResult | null;
+export type VehicleStatusState = {
+  data: VehicleAnalysisResult | null;
   error: string | null;
   lastUpdated: Date | null;
   refresh: () => void;
 };
 
-export function useTramStatus({ paused = false }: { paused?: boolean } = {}): TramStatusState {
-  const [data, setData] = useState<TramAnalysisResult | null>(null);
+export function useVehicleStatus(
+  mode: VehicleMode,
+  { paused = false }: { paused?: boolean } = {},
+): VehicleStatusState {
+  const [data, setData] = useState<VehicleAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const inFlightController = useRef<AbortController | null>(null);
@@ -25,9 +29,9 @@ export function useTramStatus({ paused = false }: { paused?: boolean } = {}): Tr
     inFlightController.current = controller;
 
     try {
-      const response = await fetch("/api/tram", { signal: controller.signal });
-      if (!response.ok) throw new Error("Failed to fetch tram status");
-      const payload = (await response.json()) as TramAnalysisResult;
+      const response = await fetch(VEHICLE_MODES[mode].apiPath, { signal: controller.signal });
+      if (!response.ok) throw new Error("Failed to fetch vehicle status");
+      const payload = (await response.json()) as VehicleAnalysisResult;
       if (controller.signal.aborted) return;
       setData(payload);
       setError(null);
@@ -36,7 +40,7 @@ export function useTramStatus({ paused = false }: { paused?: boolean } = {}): Tr
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "An error occurred");
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     if (paused || !visible) return;

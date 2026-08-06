@@ -1,10 +1,10 @@
 const GOLEMIO_BASE_URL = "https://api.golemio.cz";
 
 /**
- * Golemio returns up to `limit` records in one response. 10 000 is enough for
- * every tram in Prague many times over (current fleet is ~250 vehicles). If we
- * ever brush against this ceiling we'd need pagination; until then the single
- * call keeps things simple.
+ * Golemio returns up to `limit` records in one response. 10 000 comfortably
+ * covers every PID vehicle on the road at once (a few thousand trip records,
+ * layover duplicates included). If we ever brush against this ceiling we'd
+ * need pagination; until then the single call keeps things simple.
  */
 const VEHICLE_POSITIONS_LIMIT = 10000;
 
@@ -56,9 +56,9 @@ async function makeRequest<T>(endpoint: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-// Routes change rarely (a new tram line maybe once or twice a year). Cache them
-// in the worker isolate for 30 min so each cold isolate hits Golemio once and
-// then reuses the list for subsequent /api/tram calls.
+// Routes change rarely (a new line maybe a few times a year). Cache the full
+// PID list in the worker isolate for 30 min so each cold isolate hits Golemio
+// once and then reuses it for subsequent /api/tram and /api/bus calls.
 const ROUTES_CACHE_TTL_MS = 30 * 60_000;
 
 // When a refresh fails, keep serving the last successful list and retry after a
@@ -68,11 +68,12 @@ const ROUTES_CACHE_TTL_MS = 30 * 60_000;
 const ROUTES_STALE_RETRY_MS = 30_000;
 
 /**
- * Builds a self-contained `getTramRoutes` with its own in-memory cache. The
+ * Builds a self-contained `getRoutes` with its own in-memory cache. The
  * default export below is the production instance; tests construct their own
- * instance to avoid cross-test state bleed.
+ * instance to avoid cross-test state bleed. Mode filtering (trams vs buses)
+ * happens in the analysis layer so both share this one cache.
  */
-export function createTramRoutesLoader(
+export function createRoutesLoader(
   ttlMs: number = ROUTES_CACHE_TTL_MS,
   staleRetryMs: number = ROUTES_STALE_RETRY_MS,
 ): () => Promise<Route[]> {
@@ -84,9 +85,8 @@ export function createTramRoutesLoader(
 
     try {
       const routes = await makeRequest<Route[]>("/v2/gtfs/routes");
-      const trams = routes.filter((route) => route.route_type === 0);
-      cached = { data: trams, expiresAt: now + ttlMs };
-      return trams;
+      cached = { data: routes, expiresAt: now + ttlMs };
+      return routes;
     } catch (err) {
       if (cached) {
         cached = { data: cached.data, expiresAt: now + staleRetryMs };
@@ -97,7 +97,7 @@ export function createTramRoutesLoader(
   };
 }
 
-export const getTramRoutes = createTramRoutesLoader();
+export const getRoutes = createRoutesLoader();
 
 export async function getVehiclePositions(): Promise<VehiclePosition[]> {
   // includeNotTracking adds the untracked trip records (before/after a run)
