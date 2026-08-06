@@ -116,6 +116,18 @@ test.describe("happy path", () => {
     await expect(search).toHaveValue("22");
   });
 
+  test("share click pre-renders the OG card for the shared URL", async ({ page }) => {
+    const ogRequests: string[] = [];
+    await page.route("**/og?*", (route) => {
+      ogRequests.push(route.request().url());
+      return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("") });
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Sdílet" }).click();
+    await expect.poll(() => ogRequests.length).toBeGreaterThan(0);
+    expect(ogRequests[0]).toMatch(/\/og\?t=[0-9a-z]+$/);
+  });
+
   test("pause button toggles aria-pressed", async ({ page }) => {
     await page.goto("/");
     const pauseButton = page.getByRole("button", {

@@ -20,6 +20,13 @@ describe("buildPageMetadata", () => {
     assert.match(String(meta.description), /autobusů/);
   });
 
+  it("pins the OG image to the share token when one is present", () => {
+    const tram = buildPageMetadata("tram", "k3x9");
+    assert.equal((tram.openGraph as unknown as OgImages).images[0].url, "/og?t=k3x9");
+    const bus = buildPageMetadata("bus", "k3x9");
+    assert.equal((bus.openGraph as unknown as OgImages).images[0].url, "/og?v=bus&t=k3x9");
+  });
+
   it("keeps openGraph and twitter cards in sync", () => {
     const meta = buildPageMetadata("bus");
     const og = (meta.openGraph as unknown as OgImages).images[0];

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
-import { buildShareUrl } from "@/lib/share";
+import { buildOgImagePath, buildShareUrl } from "@/lib/share";
 import { VEHICLE_MODES, type VehicleMode } from "@/lib/vehicle-modes";
 
 const SHARE_TITLE = "Smrdíme?";
@@ -27,7 +27,14 @@ export function ShareButton({
   async function handleShare() {
     // Fresh token per click so the shared link is a new URL the crawler hasn't
     // cached yet (see buildShareUrl).
-    const url = buildShareUrl(Date.now(), path);
+    const token = Date.now();
+    const url = buildShareUrl(token, path);
+
+    // Pre-render the card for this exact share URL right now, so by the time
+    // a platform's scraper asks for it, the edge already has it — a cold
+    // render can exceed scraper timeouts. keepalive lets it finish even if
+    // the user navigates off to the share sheet.
+    fetch(buildOgImagePath(mode, token.toString(36)), { keepalive: true }).catch(() => {});
 
     // Native share sheet on mobile; clipboard everywhere else.
     if (typeof navigator.share === "function") {

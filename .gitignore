@@ -32,3 +32,4 @@ yarn-error.log*
 # keep .env.example tracked so contributors have a template
 .env*
 !.env.example
+.dev.vars
