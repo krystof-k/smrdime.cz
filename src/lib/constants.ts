@@ -27,17 +27,24 @@ export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
 export const AC_BUS_FLEET_SHARE = "73,12";
 export const AC_BUS_FLEET_SHARE_DATE = "25. červnu 2026";
 
-// Edge cache on /api/tram dedupes globally at 30 s; client polling more
-// frequently still sees fresh-ish data cheaply via cache hits.
+// Polling faster than the 30 s Golemio subrequest TTL is deliberate: the extra
+// polls still run our Worker, but they resolve against the edge-cached Golemio
+// response instead of reaching Golemio, so a tab picks up new data as soon as
+// that copy rolls over.
 export const REFRESH_INTERVAL_MS = 10_000;
 
-// Weather changes slowly; the proxy edge-caches for 5 min, so polling more
-// frequently from the client just spends bandwidth without seeing fresh data.
+// Weather changes slowly and the Open-Meteo subrequest is edge-cached for
+// WEATHER_CACHE_TTL_SECONDS, so polling more frequently would just re-fetch the
+// same number.
 export const WEATHER_REFRESH_INTERVAL_MS = 5 * 60_000;
 
 const PRAGUE_COORDS = { latitude: 50.0755, longitude: 14.4378 } as const;
 
 export const WEATHER_API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${PRAGUE_COORDS.latitude}&longitude=${PRAGUE_COORDS.longitude}&current_weather=true`;
+
+// Shared by /api/weather and the OG render — both fetch the same URL, so they
+// share one edge-cached copy of it.
+export const WEATHER_CACHE_TTL_SECONDS = 300;
 
 export const DPP_AC_FAQ_URL =
   "https://www.dpp.cz/kontakt/casto-kladene-dotazy/detail/44_1144-funguje-ve-vozech-mhd-klimatizace";

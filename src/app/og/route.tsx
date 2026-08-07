@@ -1,5 +1,6 @@
-import { WEATHER_API_URL } from "@/lib/constants";
+import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
+import { withEdgeCache } from "@/lib/edge-cache";
 import { OG_EMOJI } from "@/lib/og-emoji";
 import { OG_FONTS } from "@/lib/og-fonts";
 import { analyzeACStatus } from "@/lib/vehicle-analysis";
@@ -22,10 +23,12 @@ const WIDTH = 1200 * SCALE;
 const HEIGHT = 630 * SCALE;
 
 // Every og:image URL is unique (30s bucket on page scrapes, share token on
-// shared links), so a long TTL never serves stale numbers to a *new* URL —
-// it just keeps an already-rendered card around so the share-click prewarm
-// survives until the platform's scraper arrives, and repeat scrapes of one
-// share URL stay consistent. The card stamps its own capture time.
+// shared links), so a long TTL never serves stale numbers to a *new* URL. It
+// buys consistency in the platforms' own caches on repeat scrapes of one share
+// URL; it does not put the render in Cloudflare's cache, which would need a
+// Cache Rule on /og. Until there is one, the share-click prewarm warms the two
+// upstream fetches this render depends on rather than the PNG itself. The card
+// stamps its own capture time.
 const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400, stale-if-error=3600";
 
 // When tram data is unavailable, fail the render instead of claiming "0 trams
@@ -78,7 +81,10 @@ function getFonts(): Font[] {
 
 async function fetchTemperature(): Promise<number | null> {
   try {
-    const res = await fetch(WEATHER_API_URL, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(
+      WEATHER_API_URL,
+      withEdgeCache(WEATHER_CACHE_TTL_SECONDS, { signal: AbortSignal.timeout(5000) }),
+    );
     if (!res.ok) return null;
     const payload = (await res.json()) as { current_weather?: { temperature?: number } };
     const temp = payload.current_weather?.temperature;
