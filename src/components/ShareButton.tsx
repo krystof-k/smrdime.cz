@@ -30,12 +30,12 @@ export function ShareButton({
     const token = Date.now();
     const url = buildShareUrl(token, path);
 
-    // Warm the card for this exact share URL right now. Without a Cache Rule
-    // on /og the rendered PNG isn't kept (see the note there), but this pulls
-    // the render's upstream data into the edge cache, so the platform's
-    // scraper meets a warm data path instead of a fully cold render — cold
-    // renders can exceed scraper timeouts. keepalive lets it finish even if
-    // the user navigates off to the share sheet.
+    // Render the card for this exact share URL now, so a scraper arriving
+    // later finds it already done — a cold render can exceed scraper timeouts.
+    // The cache /og writes to is per colo, so this only lands the finished PNG
+    // for scrapers resolving to the same one; the rest still re-render, but off
+    // edge-cached upstream data. keepalive lets the request finish even if the
+    // user navigates off to the share sheet.
     fetch(buildOgImagePath(mode, token.toString(36)), { keepalive: true }).catch(() => {});
 
     // Native share sheet on mobile; clipboard everywhere else.

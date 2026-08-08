@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
 import { withEdgeCache } from "@/lib/edge-cache";
@@ -23,12 +24,12 @@ const WIDTH = 1200 * SCALE;
 const HEIGHT = 630 * SCALE;
 
 // Every og:image URL is unique (30s bucket on page scrapes, share token on
-// shared links), so a long TTL never serves stale numbers to a *new* URL. It
-// buys consistency in the platforms' own caches on repeat scrapes of one share
-// URL; it does not put the render in Cloudflare's cache, which would need a
-// Cache Rule on /og. Until there is one, the share-click prewarm warms the two
-// upstream fetches this render depends on rather than the PNG itself. The card
-// stamps its own capture time.
+// shared links), so a long TTL never serves stale numbers to a *new* URL — it
+// just keeps an already-rendered card around so the share-click prewarm
+// survives until the platform's scraper arrives, and repeat scrapes of one
+// share URL stay consistent. `s-maxage` is what the Cache API put below stores
+// the render under, and what the platforms' own caches honour. The card stamps
+// its own capture time.
 const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400, stale-if-error=3600";
 
 // When tram data is unavailable, fail the render instead of claiming "0 trams
@@ -146,7 +147,31 @@ function emoji(str: string) {
   });
 }
 
+// Cloudflare's per-colo cache. The DOM lib's CacheStorage doesn't declare
+// `default`, and the whole API is absent outside the Worker runtime — so a
+// `next dev` request keeps failing on the WASM import, as it already did,
+// rather than on a missing global.
+function edgeCache(): Cache | undefined {
+  if (typeof caches === "undefined") return undefined;
+  return (caches as unknown as { default?: Cache }).default;
+}
+
+// getCloudflareContext types `ctx` as workerd's ExecutionContext, which lands as
+// `any` without @cloudflare/workers-types. Name the one method we call so a
+// typo can't slip through untyped.
+type ExecutionCtx = { waitUntil(promise: Promise<unknown>): void };
+
 export async function GET(request: Request) {
+  // The 2400×1260 Satori/resvg render is the most expensive thing this app
+  // does, and unlike the upstream fetches it can't be deduplicated by URL —
+  // every og:image URL is deliberately unique. So keep the finished card:
+  // a hit means this exact URL is being fetched again (a scraper retrying, a
+  // link going around, or someone hammering /og), and none of those should pay
+  // for a re-render.
+  const cache = edgeCache();
+  const cached = await cache?.match(request);
+  if (cached) return cached;
+
   const { ImageResponse } = await import("workers-og");
 
   const mode = new URL(request.url).searchParams.get("v") === "bus" ? "bus" : "tram";
@@ -198,7 +223,7 @@ export async function GET(request: Request) {
           word("bez klimatizace.", 900),
         ];
 
-  return new ImageResponse(
+  const image = new ImageResponse(
     <div
       style={{
         position: "relative",
@@ -263,4 +288,14 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": CACHE_CONTROL },
     },
   );
+
+  // Store a clone so the original still streams to this caller; waitUntil keeps
+  // the isolate alive until the copy lands. The stored TTL comes from
+  // CACHE_CONTROL's s-maxage.
+  if (cache) {
+    const { ctx } = getCloudflareContext<Record<string, unknown>, ExecutionCtx>();
+    ctx.waitUntil(cache.put(request, image.clone()));
+  }
+
+  return image;
 }
