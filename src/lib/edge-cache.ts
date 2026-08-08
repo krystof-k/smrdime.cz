@@ -9,8 +9,8 @@
  *
  * Two things to keep in mind: the cache is per data centre, not global — fine
  * here, our traffic is overwhelmingly PRG — and `cf` is honoured only by a
- * deployed Worker, so `next dev` and the unit tests still call upstream every
- * time.
+ * deployed Worker on a zone, so `next dev`, `wrangler dev` and a workers.dev
+ * hostname all call upstream every time.
  */
 
 // `cf` is a Cloudflare extension to RequestInit that the DOM lib doesn't
@@ -25,6 +25,10 @@ type EdgeCachedInit = RequestInit & {
  * Adds Cloudflare's cache directives to a fetch init. `cacheEverything` makes
  * the edge store the response whatever the upstream's own `Cache-Control`
  * says; `cacheTtl` then decides how long that one shared copy is served.
+ *
+ * Pass the URL to `fetch` as a string, never as a `Request` built from this —
+ * Next's patched fetch rebuilds a `Request` argument from a fixed field list
+ * that has no `cf`, and the directives would be dropped silently.
  */
 export function withEdgeCache(ttlSeconds: number, init: RequestInit = {}): EdgeCachedInit {
   return { ...init, cf: { cacheTtl: ttlSeconds, cacheEverything: true } };

@@ -82,7 +82,8 @@ async function makeRequest<T>(endpoint: string, cacheTtlSeconds: number): Promis
 // PID list in the worker isolate for 30 min so each cold isolate hits Golemio
 // once and then reuses it for subsequent /api/tram and /api/bus calls. The same
 // TTL goes to the edge, so cold isolates share one copy instead of each paying
-// for its own catalog fetch.
+// for its own catalog fetch — the two layers compound, so a route list can be
+// up to an hour old. Fine for a catalog that changes a few times a year.
 const ROUTES_CACHE_TTL_MS = 30 * 60_000;
 
 // When a refresh fails, keep serving the last successful list and retry after a
@@ -108,7 +109,7 @@ export function createRoutesLoader(
     if (cached && cached.expiresAt > now) return cached.data;
 
     try {
-      const routes = await makeRequest<Route[]>("/v2/gtfs/routes", ROUTES_CACHE_TTL_MS / 1000);
+      const routes = await makeRequest<Route[]>("/v2/gtfs/routes", ttlMs / 1000);
       cached = { data: routes, expiresAt: now + ttlMs };
       return routes;
     } catch (err) {

@@ -5,9 +5,10 @@ import { withEdgeCache } from "@/lib/edge-cache";
 /**
  * Server-side proxy in front of Open-Meteo. What keeps us inside Open-Meteo's
  * per-IP quota is the edge-cached subrequest below, not this header — on
- * Workers `s-maxage` only instructs browsers and any proxy in front of us (see
- * `withEdgeCache`). Clients poll this endpoint at a much lower cadence than the
- * tram data anyway, since the temperature barely moves minute to minute.
+ * Workers `s-maxage` only instructs shared caches in front of us, and there is
+ * no edge cache holding this response (see `withEdgeCache`). Clients poll this
+ * endpoint at a much lower cadence than the tram data anyway, since the
+ * temperature barely moves minute to minute.
  */
 const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=3600";
 const ERROR_CACHE_CONTROL = "public, s-maxage=10";
