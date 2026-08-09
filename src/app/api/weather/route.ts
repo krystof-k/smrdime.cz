@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
-import { WEATHER_API_URL } from "@/lib/constants";
+import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
+import { withEdgeCache } from "@/lib/edge-cache";
 
 /**
- * Server-side proxy in front of Open-Meteo. The edge cache deduplicates
- * concurrent requests globally; clients then poll this endpoint at a much
- * lower cadence than the tram data, since the temperature barely moves
- * minute to minute.
+ * Server-side proxy in front of Open-Meteo. What keeps us inside Open-Meteo's
+ * per-IP quota is the edge-cached subrequest below, not this header — on
+ * Workers `s-maxage` only instructs shared caches in front of us, and there is
+ * no edge cache holding this response (see `withEdgeCache`). Clients poll this
+ * endpoint at a much lower cadence than the tram data anyway, since the
+ * temperature barely moves minute to minute.
  */
 const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=3600";
 const ERROR_CACHE_CONTROL = "public, s-maxage=10";
@@ -17,9 +20,12 @@ const UPSTREAM_SNIPPET_LENGTH = 200;
 export async function GET() {
   let upstreamStatus: number | null = null;
   try {
-    const response = await fetch(WEATHER_API_URL, {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
+    const response = await fetch(
+      WEATHER_API_URL,
+      withEdgeCache(WEATHER_CACHE_TTL_SECONDS, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      }),
+    );
     upstreamStatus = response.status;
     if (!response.ok) {
       const body = await response.text().catch(() => "");

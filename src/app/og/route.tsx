@@ -1,5 +1,7 @@
-import { WEATHER_API_URL } from "@/lib/constants";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
+import { withEdgeCache } from "@/lib/edge-cache";
 import { OG_EMOJI } from "@/lib/og-emoji";
 import { OG_FONTS } from "@/lib/og-fonts";
 import { analyzeACStatus } from "@/lib/vehicle-analysis";
@@ -22,18 +24,26 @@ const WIDTH = 1200 * SCALE;
 const HEIGHT = 630 * SCALE;
 
 // Every og:image URL is unique (30s bucket on page scrapes, share token on
-// shared links), so a long TTL never serves stale numbers to a *new* URL —
-// it just keeps an already-rendered card around so the share-click prewarm
-// survives until the platform's scraper arrives, and repeat scrapes of one
-// share URL stay consistent. The card stamps its own capture time.
+// shared links), so a long TTL never serves stale numbers to a *new* URL — it
+// just keeps an already-rendered card around, so repeat fetches of one share
+// URL are free and stay consistent. `s-maxage` is what the Cache API put below
+// stores the render under, and what the platforms' own caches honour; the rest
+// of the directives are for those, since the Cache API reads only s-maxage.
+// That store is per colo, so the share-click prewarm only hands the finished
+// card to a scraper resolving to the colo that served the click. The card
+// stamps its own capture time.
 const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400, stale-if-error=3600";
 
 // When tram data is unavailable, fail the render instead of claiming "0 trams
-// without AC" — platforms keep the previous unfurl on error, and stale-if-error
-// keeps serving the last good image from the edge cache.
+// without AC" — platforms keep the previous unfurl on error. An already-cached
+// card for this URL is unaffected: the cache lookup runs before this path, so
+// the error is only ever what a *cold* URL gets. (stale-if-error is a directive
+// for the platforms' caches; the Cache API doesn't implement it.)
 const ERROR_CACHE_CONTROL = "public, s-maxage=5";
 
 // Prague-local "23. 6. 2026 14:32", shown subtly top-right like the site clock.
+// Stamped from the analysis capture time, not the render time — a card built
+// off an edge-cached feed would otherwise date itself later than its numbers.
 const STAMP_FORMAT = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
   day: "numeric",
@@ -78,7 +88,10 @@ function getFonts(): Font[] {
 
 async function fetchTemperature(): Promise<number | null> {
   try {
-    const res = await fetch(WEATHER_API_URL, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(
+      WEATHER_API_URL,
+      withEdgeCache(WEATHER_CACHE_TTL_SECONDS, { signal: AbortSignal.timeout(5000) }),
+    );
     if (!res.ok) return null;
     const payload = (await res.json()) as { current_weather?: { temperature?: number } };
     const temp = payload.current_weather?.temperature;
@@ -140,7 +153,34 @@ function emoji(str: string) {
   });
 }
 
+// The DOM lib's CacheStorage doesn't declare `default`, and workerd implements
+// only these two members of it (keys/matchAll/add all throw "not implemented"),
+// so describe what's actually there rather than borrowing the DOM `Cache` type.
+type ColoCache = {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
+};
+
+// getCloudflareContext types `ctx` as workerd's ExecutionContext, which lands as
+// `any` without @cloudflare/workers-types. Name the one method we call so a
+// typo can't slip through untyped.
+type ExecutionCtx = { waitUntil(promise: Promise<unknown>): void };
+
 export async function GET(request: Request) {
+  // The 2400×1260 Satori/resvg render is the most expensive thing this app
+  // does, and unlike the upstream fetches it can't be deduplicated by URL —
+  // every og:image URL is deliberately unique. So keep the finished card:
+  // a hit means this exact URL is being fetched again (a scraper retrying, a
+  // link going around, or someone hammering /og), and none of those should pay
+  // for a re-render.
+  const cache = (caches as unknown as { default: ColoCache }).default;
+  // Next routes HEAD into this same GET export, and workerd's cache rejects a
+  // non-GET key on both match and put — keyed on the incoming request, a HEAD
+  // would miss, re-render, and then throw on the put. Key on the URL alone.
+  const cacheKey = new Request(request.url);
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
   const { ImageResponse } = await import("workers-og");
 
   const mode = new URL(request.url).searchParams.get("v") === "bus" ? "bus" : "tram";
@@ -161,7 +201,7 @@ export async function GET(request: Request) {
 
   const count = analysis.onTrack.vehiclesWithoutAC;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
-  const stamp = STAMP_FORMAT.format(new Date());
+  const stamp = STAMP_FORMAT.format(analysis.lastUpdated);
 
   const headline =
     temperature !== null
@@ -192,7 +232,7 @@ export async function GET(request: Request) {
           word("bez klimatizace.", 900),
         ];
 
-  return new ImageResponse(
+  const image = new ImageResponse(
     <div
       style={{
         position: "relative",
@@ -257,4 +297,15 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": CACHE_CONTROL },
     },
   );
+
+  // Store a clone so the original still streams to this caller; waitUntil keeps
+  // the isolate alive until the copy lands. The stored TTL comes from
+  // CACHE_CONTROL's s-maxage. A render that fails mid-stream errors the body
+  // after the 200 is already committed, which rejects the put — nothing is
+  // stored either way, but an unhandled rejection here would surface as a
+  // Worker exception.
+  const { ctx } = getCloudflareContext<Record<string, unknown>, ExecutionCtx>();
+  ctx.waitUntil(cache.put(cacheKey, image.clone()).catch(() => {}));
+
+  return image;
 }

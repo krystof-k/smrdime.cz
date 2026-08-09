@@ -12,9 +12,9 @@ export function buildShareUrl(token: number, path = "/"): string {
 
 /**
  * The og:image URL for a given cache-bust value: the 30s bucket on plain
- * page scrapes, or the share token on shared links — the share button
- * prewarms exactly this URL, so the platform's scraper finds the card
- * already rendered.
+ * page scrapes, or the share token on shared links — the share button prewarms
+ * exactly this URL, so a scraper reaching the colo that served the click finds
+ * the card already rendered (see /og; the render cache is per colo).
  */
 export function buildOgImagePath(mode: VehicleMode, t: string): string {
   return `/og?${mode === "bus" ? "v=bus&" : ""}t=${t}`;

@@ -30,10 +30,12 @@ export function ShareButton({
     const token = Date.now();
     const url = buildShareUrl(token, path);
 
-    // Pre-render the card for this exact share URL right now, so by the time
-    // a platform's scraper asks for it, the edge already has it — a cold
-    // render can exceed scraper timeouts. keepalive lets it finish even if
-    // the user navigates off to the share sheet.
+    // Render the card for this exact share URL now, so a scraper arriving
+    // later finds it already done — a cold render can exceed scraper timeouts.
+    // The cache /og writes to is per colo, so this only lands the finished PNG
+    // for scrapers resolving to the same one; elsewhere it still re-renders.
+    // keepalive lets the request finish even if the user navigates off to the
+    // share sheet.
     fetch(buildOgImagePath(mode, token.toString(36)), { keepalive: true }).catch(() => {});
 
     // Native share sheet on mobile; clipboard everywhere else.
