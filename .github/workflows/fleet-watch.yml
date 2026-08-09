@@ -33,6 +33,9 @@ jobs:
       - uses: peter-evans/create-pull-request@v7
         with:
           branch: fleet-watch
+          # A review request notifies reliably regardless of watch settings —
+          # a bot-authored PR alone can slip through as unwatched activity.
+          reviewers: krystof-k
           title: Update AC tram fleet constants
           commit-message: |
             Update AC tram fleet constants
