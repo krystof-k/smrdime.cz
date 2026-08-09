@@ -42,6 +42,8 @@ const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400, stale
 const ERROR_CACHE_CONTROL = "public, s-maxage=5";
 
 // Prague-local "23. 6. 2026 14:32", shown subtly top-right like the site clock.
+// Stamped from the analysis capture time, not the render time — a card built
+// off an edge-cached feed would otherwise date itself later than its numbers.
 const STAMP_FORMAT = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
   day: "numeric",
@@ -199,7 +201,7 @@ export async function GET(request: Request) {
 
   const count = analysis.onTrack.vehiclesWithoutAC;
   const accent = temperature !== null ? getTemperatureHex(temperature) : NEUTRAL_HEX;
-  const stamp = STAMP_FORMAT.format(new Date());
+  const stamp = STAMP_FORMAT.format(analysis.lastUpdated);
 
   const headline =
     temperature !== null

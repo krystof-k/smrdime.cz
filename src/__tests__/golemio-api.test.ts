@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { createRoutesLoader, getVehiclePositions, type Route } from "../lib/golemio-api.ts";
+import {
+  capturedAtFrom,
+  createRoutesLoader,
+  getVehiclePositions,
+  type Route,
+} from "../lib/golemio-api.ts";
 
 const originalFetch = globalThis.fetch;
 const fetchCalls: Array<[string, RequestInit | undefined]> = [];
@@ -30,13 +35,14 @@ beforeEach(() => {
   responseQueue.length = 0;
 });
 
-function queueJson(body: unknown) {
+function queueJson(body: unknown, headers: Record<string, string> = {}) {
   responseQueue.push(
     async () =>
       ({
         ok: true,
         status: 200,
         statusText: "OK",
+        headers: new Headers(headers),
         json: async () => body,
       }) as Response,
   );
@@ -188,6 +194,33 @@ describe("routes loader", () => {
   });
 });
 
+describe("capturedAtFrom", () => {
+  const now = new Date("2026-08-09T12:00:30Z");
+
+  it("backdates by Age, so an edge-cached feed isn't stamped as fresh", () => {
+    const headers = new Headers({ age: "27", date: "Sun, 09 Aug 2026 12:00:03 GMT" });
+    assert.equal(capturedAtFrom(headers, now).toISOString(), "2026-08-09T12:00:03.000Z");
+  });
+
+  it("treats a fresh response (Age: 0) as captured now", () => {
+    assert.equal(capturedAtFrom(new Headers({ age: "0" }), now).getTime(), now.getTime());
+  });
+
+  it("falls back to Date when there is no Age", () => {
+    const headers = new Headers({ date: "Sun, 09 Aug 2026 12:00:10 GMT" });
+    assert.equal(capturedAtFrom(headers, now).toISOString(), "2026-08-09T12:00:10.000Z");
+  });
+
+  it("stamps now when neither header is usable", () => {
+    assert.equal(capturedAtFrom(new Headers(), now).getTime(), now.getTime());
+    assert.equal(capturedAtFrom(new Headers({ age: "soon" }), now).getTime(), now.getTime());
+  });
+
+  it("ignores a negative Age rather than dating the feed in the future", () => {
+    assert.equal(capturedAtFrom(new Headers({ age: "-5" }), now).getTime(), now.getTime());
+  });
+});
+
 describe("getVehiclePositions", () => {
   it("unwraps features[].properties from the GeoJSON response", async () => {
     queueJson({
@@ -208,9 +241,9 @@ describe("getVehiclePositions", () => {
       ],
     });
 
-    const result = await getVehiclePositions();
-    assert.equal(result.length, 1);
-    assert.equal(result[0].trip.air_conditioned, true);
+    const { vehicles } = await getVehiclePositions();
+    assert.equal(vehicles.length, 1);
+    assert.equal(vehicles[0].trip.air_conditioned, true);
   });
 
   it("requests all vehicle positions in a single call, including untracked layovers", async () => {
@@ -219,6 +252,18 @@ describe("getVehiclePositions", () => {
     assert.equal(
       fetchCalls[0][0],
       "https://api.golemio.cz/v2/vehiclepositions?limit=10000&includeNotTracking=true",
+    );
+  });
+
+  it("reports the feed's capture time, not the moment we read it", async () => {
+    queueJson({ features: [] }, { age: "20" });
+    const before = Date.now();
+    const { capturedAt } = await getVehiclePositions();
+
+    // 20 s of Age must show up as 20 s of backdating, give or take test runtime.
+    assert.ok(
+      before - capturedAt.getTime() >= 20_000 && before - capturedAt.getTime() < 21_000,
+      `expected ~20s backdate, got ${before - capturedAt.getTime()}ms`,
     );
   });
 });

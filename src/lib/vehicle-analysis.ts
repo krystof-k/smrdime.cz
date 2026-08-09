@@ -185,6 +185,9 @@ export function analyze(
 }
 
 export async function analyzeACStatus(mode: VehicleMode): Promise<VehicleAnalysisResult> {
-  const [routes, vehicles] = await Promise.all([getRoutes(), getVehiclePositions()]);
-  return analyze(routes, vehicles, new Date(), mode);
+  const [routes, positions] = await Promise.all([getRoutes(), getVehiclePositions()]);
+  // capturedAt, not "now": the feed may have come from the edge cache, and the
+  // clock in the UI is meant to say how fresh the vehicle data is, not when a
+  // request happened to read it.
+  return analyze(routes, positions.vehicles, positions.capturedAt, mode);
 }
