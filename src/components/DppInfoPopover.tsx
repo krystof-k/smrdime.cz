@@ -4,10 +4,12 @@ import { useCallback, useEffect, useId, useRef } from "react";
 import {
   AC_BUS_FLEET_SHARE,
   AC_BUS_FLEET_SHARE_DATE,
-  AC_FLEET_15T,
+  AC_FLEET_15T_FACTORY,
   AC_FLEET_52T,
+  AC_RETROFITTED_15T,
   DPP_52T_URL,
   DPP_AC_FAQ_URL,
+  DPP_RETROFIT_URL,
 } from "@/lib/constants";
 import type { VehicleMode } from "@/lib/vehicle-modes";
 
@@ -112,9 +114,18 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
                 >
                   DPP
                 </a>{" "}
-                je v Praze <span className="font-mono">{AC_FLEET_15T}</span> klimatizovaných
-                tramvají <span className="whitespace-nowrap">Škoda 15T</span> (druhá dodávka) a{" "}
-                <span className="font-mono">{AC_FLEET_52T}</span> tramvají{" "}
+                má klimatizaci <span className="font-mono">{AC_FLEET_15T_FACTORY}</span> tramvají{" "}
+                <span className="whitespace-nowrap">Škoda 15T</span> z druhé dodávky, k tomu{" "}
+                <a
+                  href={DPP_RETROFIT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  doklimatizované
+                </a>{" "}
+                starší 15T (zatím <span className="font-mono">{AC_RETROFITTED_15T.length}</span>) a
+                nové{" "}
                 <a
                   href={DPP_52T_URL}
                   target="_blank"
@@ -123,7 +134,8 @@ export function DppInfoPopover({ mode }: { mode: VehicleMode }) {
                 >
                   Škoda 52T
                 </a>{" "}
-                dodaných do konce roku 2025.
+                (zatím <span className="font-mono">{AC_FLEET_52T}</span>). Rostoucí počty průběžně
+                doplňujeme podle živého provozu.
               </>
             ) : (
               <>
