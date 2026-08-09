@@ -1,16 +1,21 @@
 /**
- * AC-equipped tram subfleets. Source: DPP FAQ (see `DPP_AC_FAQ_URL`) and the
- * 52T rolling stock page (`DPP_52T_URL`). Last verified: 2026-08-06 — the FAQ
- * still states 20 × 52T "k 31. prosinci 2025" and expects +20 during 2026,
- * so re-check after DPP announces new deliveries.
+ * AC-equipped tram subfleets. The two growing values are ratcheted up from
+ * the live feed by scripts/check-ac-fleet.mjs (the Fleet watch workflow PRs
+ * the bumps); registration ranges per the DPP retrofit press release
+ * (`DPP_RETROFIT_URL`) and verified against live feed AC flags 2026-08-09.
  *
- *   - Škoda 15T: second delivery
- *   - Škoda 52T: delivered by 2025-12-18; 71 ordered in total, rolling out
- *     through 2027
+ *   - AC_FLEET_15T_FACTORY: second-delivery 15T with factory AC
+ *     (registrations 9326–9450) — fixed.
+ *   - AC_RETROFITTED_15T: first-delivery 15T (9201–9325) seen reporting AC.
+ *     Two pilot conversions so far; DPP tendered the remaining 123 at a pace
+ *     of 20+ per year.
+ *   - AC_FLEET_52T: 52T seen in passenger service (registrations from 9501
+ *     up); 71 ordered in total, rolling out through 2027.
  */
-export const AC_FLEET_15T = 127;
-export const AC_FLEET_52T = 20;
-export const AC_FLEET_TOTAL = AC_FLEET_15T + AC_FLEET_52T;
+export const AC_FLEET_15T_FACTORY = 125;
+export const AC_RETROFITTED_15T = [9243, 9285];
+export const AC_FLEET_52T = 21;
+export const AC_FLEET_TOTAL = AC_FLEET_15T_FACTORY + AC_RETROFITTED_15T.length + AC_FLEET_52T;
 
 /**
  * Share of DPP's bus fleet with full AC, as stated on the DPP FAQ
@@ -44,3 +49,6 @@ export const DPP_AC_FAQ_URL =
 
 export const DPP_52T_URL =
   "https://www.dpp.cz/spolecnost/o-spolecnosti/vozovy-park/tramvaje/skoda-52t";
+
+export const DPP_RETROFIT_URL =
+  "https://www.dpp.cz/spolecnost/pro-media/tiskove-zpravy/detail/278_3061-dpp-chysta-doklimatizaci-tramvaji-skoda-15t-hleda-pro-ni-dodavatele";

@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 import {
+  AC_FLEET_15T_FACTORY,
+  AC_FLEET_52T,
+  AC_FLEET_TOTAL,
+  AC_RETROFITTED_15T,
+} from "../src/lib/constants.ts";
+import {
   mockBus,
   mockTram,
   mockWeather,
@@ -20,7 +26,7 @@ test.describe("happy path", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("bez klimatizace");
     await expect(page.getByText(/28\s?°C/)).toBeVisible();
     await expect(page.getByText("80").first()).toBeVisible();
-    await expect(page.getByText(/147/)).toBeVisible();
+    await expect(page.getByText(new RegExp(String(AC_FLEET_TOTAL)))).toBeVisible();
   });
 
   test("tap-to-toggle flips between counts and percentages", async ({ page }) => {
@@ -57,14 +63,16 @@ test.describe("happy path", () => {
     await expect(page.getByText("80").first()).toBeVisible();
   });
 
-  test("dpp.cz popover reveals the 15T + 52T breakdown", async ({ page }) => {
+  test("dpp.cz popover reveals the 15T + retrofit + 52T breakdown", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "dpp.cz" }).click();
     const tooltip = page.getByRole("tooltip");
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText("127");
+    await expect(tooltip).toContainText(String(AC_FLEET_15T_FACTORY));
     await expect(tooltip).toContainText("Škoda 15T");
-    await expect(tooltip).toContainText("20");
+    await expect(tooltip).toContainText("doklimatizované");
+    await expect(tooltip).toContainText(String(AC_RETROFITTED_15T.length));
+    await expect(tooltip).toContainText(String(AC_FLEET_52T));
     await expect(tooltip).toContainText("Škoda 52T");
   });
 

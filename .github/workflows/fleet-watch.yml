@@ -1,0 +1,44 @@
+name: Fleet watch
+
+on:
+  schedule:
+    # Every 2 h during Prague daytime — the ratchet in check-ac-fleet.mjs
+    # only needs to catch a new tram in service once.
+    - cron: "23 4-20/2 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: check
+        run: echo "summary=$(node scripts/check-ac-fleet.mjs)" >> "$GITHUB_OUTPUT"
+        env:
+          GOLEMIO_API_KEY: ${{ secrets.GOLEMIO_API_KEY }}
+      # The retrofit list will eventually outgrow the line width; keep the
+      # generated file formatted so the PR passes lint.
+      - run: pnpm exec biome format --write src/lib/constants.ts
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: fleet-watch
+          title: Update AC tram fleet constants
+          commit-message: |
+            Update AC tram fleet constants
+
+            ${{ steps.check.outputs.summary }}
+          body: |
+            Live-feed check: ${{ steps.check.outputs.summary }}
+
+            Opened automatically by the Fleet watch workflow.
