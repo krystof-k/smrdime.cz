@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
-import { withEdgeCache } from "@/lib/edge-cache";
+import { cachedFetch } from "@/lib/edge-cache";
 
 /**
  * Server-side proxy in front of Open-Meteo. What keeps us inside Open-Meteo's
@@ -20,12 +20,10 @@ const UPSTREAM_SNIPPET_LENGTH = 200;
 export async function GET() {
   let upstreamStatus: number | null = null;
   try {
-    const response = await fetch(
-      WEATHER_API_URL,
-      withEdgeCache(WEATHER_CACHE_TTL_SECONDS, {
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      }),
-    );
+    const response = await cachedFetch(WEATHER_API_URL, {
+      ttlSeconds: WEATHER_CACHE_TTL_SECONDS,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
     upstreamStatus = response.status;
     if (!response.ok) {
       const body = await response.text().catch(() => "");

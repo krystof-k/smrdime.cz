@@ -1,7 +1,6 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { WEATHER_API_URL, WEATHER_CACHE_TTL_SECONDS } from "@/lib/constants";
 import { getTemperatureEmoji, getTemperatureHex, NEUTRAL_HEX } from "@/lib/display";
-import { withEdgeCache } from "@/lib/edge-cache";
+import { cachedFetch, coloCache, waitUntil } from "@/lib/edge-cache";
 import { OG_EMOJI } from "@/lib/og-emoji";
 import { OG_FONTS } from "@/lib/og-fonts";
 import { analyzeACStatus } from "@/lib/vehicle-analysis";
@@ -88,10 +87,10 @@ function getFonts(): Font[] {
 
 async function fetchTemperature(): Promise<number | null> {
   try {
-    const res = await fetch(
-      WEATHER_API_URL,
-      withEdgeCache(WEATHER_CACHE_TTL_SECONDS, { signal: AbortSignal.timeout(5000) }),
-    );
+    const res = await cachedFetch(WEATHER_API_URL, {
+      ttlSeconds: WEATHER_CACHE_TTL_SECONDS,
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return null;
     const payload = (await res.json()) as { current_weather?: { temperature?: number } };
     const temp = payload.current_weather?.temperature;
@@ -153,19 +152,6 @@ function emoji(str: string) {
   });
 }
 
-// The DOM lib's CacheStorage doesn't declare `default`, and workerd implements
-// only these two members of it (keys/matchAll/add all throw "not implemented"),
-// so describe what's actually there rather than borrowing the DOM `Cache` type.
-type ColoCache = {
-  match(request: Request): Promise<Response | undefined>;
-  put(request: Request, response: Response): Promise<void>;
-};
-
-// getCloudflareContext types `ctx` as workerd's ExecutionContext, which lands as
-// `any` without @cloudflare/workers-types. Name the one method we call so a
-// typo can't slip through untyped.
-type ExecutionCtx = { waitUntil(promise: Promise<unknown>): void };
-
 export async function GET(request: Request) {
   // The 2400×1260 Satori/resvg render is the most expensive thing this app
   // does, and unlike the upstream fetches it can't be deduplicated by URL —
@@ -173,12 +159,12 @@ export async function GET(request: Request) {
   // a hit means this exact URL is being fetched again (a scraper retrying, a
   // link going around, or someone hammering /og), and none of those should pay
   // for a re-render.
-  const cache = (caches as unknown as { default: ColoCache }).default;
+  const cache = coloCache();
   // Next routes HEAD into this same GET export, and workerd's cache rejects a
   // non-GET key on both match and put — keyed on the incoming request, a HEAD
   // would miss, re-render, and then throw on the put. Key on the URL alone.
   const cacheKey = new Request(request.url);
-  const cached = await cache.match(cacheKey);
+  const cached = await cache?.match(cacheKey);
   if (cached) return cached;
 
   const { ImageResponse } = await import("workers-og");
@@ -304,8 +290,7 @@ export async function GET(request: Request) {
   // after the 200 is already committed, which rejects the put — nothing is
   // stored either way, but an unhandled rejection here would surface as a
   // Worker exception.
-  const { ctx } = getCloudflareContext<Record<string, unknown>, ExecutionCtx>();
-  ctx.waitUntil(cache.put(cacheKey, image.clone()).catch(() => {}));
+  if (cache) waitUntil(cache.put(cacheKey, image.clone()).catch(() => {}));
 
   return image;
 }

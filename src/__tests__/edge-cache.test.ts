@@ -1,18 +1,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { withEdgeCache } from "../lib/edge-cache.ts";
+import { capturedAtFrom } from "../lib/edge-cache.ts";
 
-describe("withEdgeCache", () => {
-  it("marks the subrequest cacheable for the given TTL", () => {
-    assert.deepEqual(withEdgeCache(300).cf, { cacheTtl: 300, cacheEverything: true });
+describe("capturedAtFrom", () => {
+  const now = new Date("2026-08-09T12:00:30Z");
+
+  it("reports when a cached copy was stored, not when we read it", () => {
+    const headers = new Headers({ "x-captured-at": "2026-08-09T12:00:03.000Z" });
+    assert.equal(capturedAtFrom(headers, now).toISOString(), "2026-08-09T12:00:03.000Z");
   });
 
-  it("keeps the caller's init, so the API key header and timeout still travel", () => {
-    const { signal } = new AbortController();
-    const init = withEdgeCache(30, { headers: { "X-Access-Token": "k" }, signal });
+  it("treats an unstamped response — one we just fetched — as captured now", () => {
+    assert.equal(capturedAtFrom(new Headers(), now).getTime(), now.getTime());
+  });
 
-    assert.deepEqual(init.headers, { "X-Access-Token": "k" });
-    assert.equal(init.signal, signal);
-    assert.equal(init.cf.cacheTtl, 30);
+  it("falls back to now rather than propagating an unparseable stamp", () => {
+    const headers = new Headers({ "x-captured-at": "recently" });
+    assert.equal(capturedAtFrom(headers, now).getTime(), now.getTime());
   });
 });

@@ -1,4 +1,4 @@
-import { withEdgeCache } from "./edge-cache.ts";
+import { cachedFetch, capturedAtFrom } from "./edge-cache.ts";
 
 const GOLEMIO_BASE_URL = "https://api.golemio.cz";
 
@@ -50,26 +50,6 @@ export interface VehiclePosition {
   };
 }
 
-/**
- * When the upstream response was produced, rather than when we asked for it.
- * On an edge-cache hit Cloudflare serves a copy stored up to the TTL ago and
- * reports how old it is in `Age`; without that, a payload read at the end of
- * its TTL would be stamped as if it had just arrived. `Date` is the fallback
- * (it survives caching too), and a response carrying neither is stamped now —
- * a missing header should cost precision, not the reading.
- */
-export function capturedAtFrom(headers: Headers, now: Date): Date {
-  const age = Number(headers.get("age") ?? Number.NaN);
-  if (Number.isFinite(age) && age >= 0) return new Date(now.getTime() - age * 1000);
-
-  const generated = Date.parse(headers.get("date") ?? "");
-  return Number.isNaN(generated) ? now : new Date(generated);
-}
-
-// Cloudflare keys the cache on the URL, so the cached copy is shared across
-// every visitor — which is correct here: the X-Access-Token below is our one
-// server-side key, not a per-user credential, and the response is the same
-// public feed for everyone. Nothing request-specific goes into these calls.
 async function makeRequest<T>(
   endpoint: string,
   cacheTtlSeconds: number,
@@ -79,16 +59,14 @@ async function makeRequest<T>(
     throw new Error("GOLEMIO_API_KEY is not set in environment variables");
   }
 
-  const response = await fetch(
-    `${GOLEMIO_BASE_URL}${endpoint}`,
-    withEdgeCache(cacheTtlSeconds, {
-      headers: {
-        "X-Access-Token": apiKey,
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    }),
-  );
+  const response = await cachedFetch(`${GOLEMIO_BASE_URL}${endpoint}`, {
+    ttlSeconds: cacheTtlSeconds,
+    headers: {
+      "X-Access-Token": apiKey,
+      Accept: "application/json",
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
 
   if (!response.ok) {
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
