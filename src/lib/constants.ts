@@ -14,7 +14,7 @@
  */
 export const AC_FLEET_15T_FACTORY = 125;
 export const AC_RETROFITTED_15T = [9243, 9285];
-export const AC_FLEET_52T = 23;
+export const AC_FLEET_52T = 24;
 export const AC_FLEET_TOTAL = AC_FLEET_15T_FACTORY + AC_RETROFITTED_15T.length + AC_FLEET_52T;
 
 /**
