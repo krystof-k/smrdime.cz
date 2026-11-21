@@ -5,9 +5,20 @@
 // snapshot is parked in the depot, not gone — so a run only needs to catch a
 // new tram in service once. Run by .github/workflows/fleet-watch.yml, which
 // opens a PR with any change; locally: GOLEMIO_API_KEY=… node scripts/check-ac-fleet.mjs
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 const CONSTANTS_PATH = new URL("../src/lib/constants.ts", import.meta.url);
+
+// The workflow gates its branch-touching steps on `changed` — create-pull-request
+// rebuilds the PR branch from main on every invocation, so running it after a
+// no-change check force-resets an open PR's branch to an empty diff.
+function report(changed, summary) {
+  console.log(summary);
+  if (process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\nsummary=${summary}\n`);
+  }
+  process.exit(0);
+}
 
 const FIRST_52T_REGISTRATION = 9501;
 // 71 ordered in total — a "52T" above this range is a feed glitch, not a tram.
@@ -31,16 +42,14 @@ try {
   if (!response.ok) throw new Error(`request failed: ${response.status}`);
   feed = await response.json();
 } catch (err) {
-  console.log(`Feed unavailable (${err.message}), skipping this run.`);
-  process.exit(0);
+  report(false, `Feed unavailable (${err.message}), skipping this run.`);
 }
 
 const trams = feed.features
   .map((feature) => feature.properties.trip)
   .filter((trip) => trip.gtfs.route_type === 0);
 if (trams.length === 0) {
-  console.log("No trams in the feed — upstream outage, skipping this run.");
-  process.exit(0);
+  report(false, "No trams in the feed — upstream outage, skipping this run.");
 }
 
 const seen52 = [];
@@ -86,12 +95,11 @@ if (nextRetrofits.length > currentRetrofits.length) {
 }
 
 if (changes.length === 0) {
-  console.log("Fleet constants are up to date.");
-  process.exit(0);
+  report(false, "Fleet constants are up to date.");
 }
 
 const updated = source
   .replace(count52Match[0], `AC_FLEET_52T = ${next52}`)
   .replace(retrofitsMatch[0], `AC_RETROFITTED_15T = [${nextRetrofits.join(", ")}]`);
 writeFileSync(CONSTANTS_PATH, updated);
-console.log(changes.join("; "));
+report(true, changes.join("; "));

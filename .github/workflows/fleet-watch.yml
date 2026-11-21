@@ -24,13 +24,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - id: check
-        run: echo "summary=$(node scripts/check-ac-fleet.mjs)" >> "$GITHUB_OUTPUT"
+        run: node scripts/check-ac-fleet.mjs
         env:
           GOLEMIO_API_KEY: ${{ secrets.GOLEMIO_API_KEY }}
       # The retrofit list will eventually outgrow the line width; keep the
       # generated file formatted so the PR passes lint.
-      - run: pnpm exec biome format --write src/lib/constants.ts
+      - if: steps.check.outputs.changed == 'true'
+        run: pnpm exec biome format --write src/lib/constants.ts
+      # Gated: create-pull-request rebuilds the branch from main every time it
+      # runs, so invoking it on a no-change run force-resets an open PR's
+      # branch to an empty diff (that emptied PR #33).
       - uses: peter-evans/create-pull-request@v7
+        if: steps.check.outputs.changed == 'true'
         with:
           branch: fleet-watch
           # A review request notifies reliably regardless of watch settings —
